@@ -1,6 +1,6 @@
 #pragma once
 
-#include "header.h"
+#include <tuple>
 
 extern "C"
 {
@@ -20,39 +20,28 @@ extern "C"
 	#pragma comment(lib, "swscale")
 }
 
-#define LOG_ERR(ret) av_strerror(ret, errorBuf, 500); std::cout << errorBuf << std::endl; memset(errorBuf, 0, 500);
+#define LOG_ERR(ret) av_strerror(ret, errorBuf, 500); printf("&s\n", errorBuf); memset(errorBuf, 0, 500);
 
-struct TranscoderSettings
+struct DecoderSettings
 {
-	bool isEncoder = true;
-
 	AVCodecID codecId;
-	int64_t bitrate;
-
-	//dont change the fileds bellow unless you have to unless you have to
-	AVPixelFormat pix_fmt = AV_PIX_FMT_YUV420P; //if you use this in conjunction with OBS, using default color settings, leave this alone
-	int gop_size = 10;
-	int max_b_frames = 1;
 
 	int xres = 1920;
 	int yres = 1080;
 
-	//these describe the framerate of the video, by default it is set to 60 fps
 	int fps = 60;
 };
 
-class Transcoder
+class Decoder
 {
 public:
-	Transcoder(TranscoderSettings settings);
-	~Transcoder();
+	Decoder(DecoderSettings settings);
 
-	std::tuple<size_t, uint8_t*> Encode(NDI_VIDEO_FRAME& frame);
 	std::tuple<size_t, uint8_t*> Decode(uint8_t* compressedData, size_t size);
 private:
 	void Repack();
 
-	TranscoderSettings m_settings;
+	DecoderSettings m_settings;
 	int ret, i;
 
 	AVCodec* codec;
@@ -61,7 +50,6 @@ private:
 	AVFrame* frame;
 	AVPacket* pkt;
 	
-	uint8_t* returnBufferInternal;
 	uint8_t* returnBuffer;
 
 	struct SwsContext* swsContext = NULL;

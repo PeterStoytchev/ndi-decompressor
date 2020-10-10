@@ -22,7 +22,7 @@
 
 #include "Frame.h"
 
-#define AUDIO_FRAME InternalAudioFrame<2 * 1024 * sizeof(float)>
+#define AUDIO_FRAME AudioFrame<2 * 1024 * sizeof(float)>
 
 #define LOG(X) std::cout << X << std::endl;
 

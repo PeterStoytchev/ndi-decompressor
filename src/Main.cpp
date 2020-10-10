@@ -1,8 +1,10 @@
-#include "Transcoder.h"
+#include "header.h"
+
+#include "Decoder.h"
+#include "FrameRecever.h"
 
 std::atomic<NDIlib_send_instance_t> pNDI_send;
 
-std::atomic<bool> shouldStart(false);
 
 static std::atomic<bool> exit_loop(false);
 static void sigint_handler(int)
@@ -13,93 +15,50 @@ static void sigint_handler(int)
 
 void VideoHandler(sockpp::tcp_socket sock)
 {
-	TranscoderSettings settings;
-	settings.bitrate = 2500;
+	DecoderSettings settings;
 	settings.codecId = AV_CODEC_ID_H264;
-	settings.pix_fmt = AV_PIX_FMT_NV12;
-	settings.isEncoder = false;
 
-	Transcoder* transcoder = new Transcoder(settings);
-
-	shouldStart = true;
+	Decoder* transcoder = new Decoder(settings);
 
 	while (!exit_loop)
 	{
-		VideoFrame frame;
+		auto [NDI_video_frame, dataBuffer, dataSize] = FrameRecever::ReceveVideoFrame(sock);
 
-		if (sock.read_n((void*)&frame, sizeof(VideoFrame)) == -1)
+		auto [decodedSize, decodedData] = transcoder->Decode(dataBuffer, dataSize);
+
+		if (decodedSize != 0)
 		{
-			std::cout << "DetailsRead: " << sock.last_error_str() << "\n";
+			NDI_video_frame.p_data = decodedData;
+
+			NDIlib_send_send_video_v2(pNDI_send, &NDI_video_frame);
 		}
 
-		NDIlib_video_frame_v2_t NDI_video_frame;
-
-
-		if (frame.dataSize != 0)
-		{
-			NDI_video_frame = frame.videoFrame;
-
-			char* dataBuffer = (char*)malloc(frame.videoFrame.xres * frame.videoFrame.yres * 2);
-
-			if (sock.read_n((void*)dataBuffer, frame.dataSize) == -1)
-			{
-				std::cout << "DetailsRead: " << sock.last_error_str() << "\n";
-			}
-			
-			auto [decodedSize, decodedData] = transcoder->Decode((uint8_t*)dataBuffer, frame.dataSize);
-
-			if (decodedSize != 0)
-			{
-				NDI_video_frame.p_data = decodedData;
-			}
-			else
-			{
-				NDI_video_frame = NDIlib_video_frame_v2_t(1, 1);
-				NDI_video_frame.p_data = (uint8_t*)malloc(2);
-				memset(NDI_video_frame.p_data, 0, 2);
-			}
-			free(dataBuffer);
-		}
-		else
-		{
-			NDI_video_frame = NDIlib_video_frame_v2_t(1, 1);
-			NDI_video_frame.p_data = (uint8_t*)malloc(2);
-			memset(NDI_video_frame.p_data, 0, 2);
-		}
-
-		NDIlib_send_send_video_v2(pNDI_send, &NDI_video_frame);
+		free(dataBuffer);
 	}
-	//NDIlib_send_destroy(pNDI_send);
 }
 
 void AudioHandler(sockpp::tcp_socket sock)
 {
-	while (shouldStart == false)
-	{
-		printf("Waiting for video thread!\n");
-	}
 
-	ssize_t n = 1;
-
-	AUDIO_FRAME* frame = (AUDIO_FRAME*)malloc(sizeof(AUDIO_FRAME));
-	while ((n = sock.read_n((void*)frame, sizeof(AUDIO_FRAME))) > 0)
+	while (!exit_loop)
 	{
-		NDIlib_audio_frame_v2_t NDI_audio_frame;
-		NDI_audio_frame = frame->audioFrame;
-		NDI_audio_frame.p_data = (float*)frame->data;
+		auto [NDI_audio_frame, data, dataSize] = FrameRecever::ReceveAudioFrame(sock);
+
+		NDI_audio_frame.p_data = data;
 
 		//printf("Submitted audio frame with timestamp: %" PRId64 "\n", NDI_audio_frame.timestamp);
 
 		NDIlib_send_send_audio_v2(pNDI_send, &NDI_audio_frame);
 	}
-
-	//NDIlib_send_destroy(pNDI_send);
 }
 
 int main()
 {
 	sockpp::socket_initializer sockInit;
-	sockpp::tcp_acceptor acceptor_video(1337);
+
+	int pedal = 1;
+	sockpp::tcp_acceptor acceptor_video(pedal);
+
 	sockpp::tcp_acceptor acceptor_video2(1339);
 	sockpp::tcp_acceptor acceptor_audio(1338);
 
