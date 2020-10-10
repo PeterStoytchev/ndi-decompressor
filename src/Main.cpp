@@ -25,9 +25,9 @@ void VideoHandler(sockpp::tcp_socket sock)
 
 	while (!exit_loop)
 	{
-		InternalVideoFrame frame;
+		VideoFrame frame;
 
-		if (sock.read_n((void*)&frame, sizeof(InternalVideoFrame)) == -1)
+		if (sock.read_n((void*)&frame, sizeof(VideoFrame)) == -1)
 		{
 			std::cout << "DetailsRead: " << sock.last_error_str() << "\n";
 		}
