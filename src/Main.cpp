@@ -39,7 +39,6 @@ void VideoHandler(sockpp::tcp_socket sock)
 
 void AudioHandler(sockpp::tcp_socket sock)
 {
-
 	while (!exit_loop)
 	{
 		auto [NDI_audio_frame, data, dataSize] = FrameRecever::ReceveAudioFrame(sock);
@@ -49,6 +48,8 @@ void AudioHandler(sockpp::tcp_socket sock)
 		//printf("Submitted audio frame with timestamp: %" PRId64 "\n", NDI_audio_frame.timestamp);
 
 		NDIlib_send_send_audio_v2(pNDI_send, &NDI_audio_frame);
+
+		free(data);
 	}
 }
 
@@ -56,10 +57,7 @@ int main()
 {
 	sockpp::socket_initializer sockInit;
 
-	int pedal = 1;
-	sockpp::tcp_acceptor acceptor_video(pedal);
-
-	sockpp::tcp_acceptor acceptor_video2(1339);
+	sockpp::tcp_acceptor acceptor_video(1337);
 	sockpp::tcp_acceptor acceptor_audio(1338);
 
 	LOG("Waiting for video on port 1337");

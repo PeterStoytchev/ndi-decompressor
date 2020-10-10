@@ -18,7 +18,7 @@ std::tuple<NDIlib_video_frame_v2_t, uint8_t*, size_t> FrameRecever::ReceveVideoF
 		printf("Failed to read video data!\nError: %s\n", sock.last_error_str());
 	}
 
-	return std::make_tuple(frame.videoFrame, dataBuffer, frame.dataSize);
+	return std::make_tuple(frame.videoFrame, (uint8_t*)dataBuffer, frame.dataSize);
 
 }
 
