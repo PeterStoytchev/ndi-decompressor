@@ -167,8 +167,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\FrameRecever.cpp" />
     <ClCompile Include="src\Main.cpp" />
-    <ClCompile Include="src\Transcoder.cpp" />
+    <ClCompile Include="src\Decoder.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
@@ -177,8 +178,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Frame.h" />
+    <ClInclude Include="src\FrameRecever.h" />
     <ClInclude Include="src\header.h" />
-    <ClInclude Include="src\Transcoder.h" />
+    <ClInclude Include="src\Decoder.h" />
     <ClInclude Include="src\utils.h" />
     <ClInclude Include="vendor\include\sockpp\acceptor.h" />
     <ClInclude Include="vendor\include\sockpp\connector.h" />

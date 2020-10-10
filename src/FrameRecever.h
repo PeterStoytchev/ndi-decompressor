@@ -18,6 +18,6 @@
 
 namespace FrameRecever
 {
-	static std::tuple<NDIlib_audio_frame_v2_t, float*, size_t> ReceveAudioFrame(sockpp::tcp_socket& sock);
-	static std::tuple<NDIlib_video_frame_v2_t, uint8_t*, size_t> ReceveVideoFrame(sockpp::tcp_socket& sock);
+	std::tuple<NDIlib_audio_frame_v2_t, float*, size_t> ReceveAudioFrame(sockpp::tcp_socket& sock);
+	std::tuple<NDIlib_video_frame_v2_t, uint8_t*, size_t> ReceveVideoFrame(sockpp::tcp_socket& sock);
 }

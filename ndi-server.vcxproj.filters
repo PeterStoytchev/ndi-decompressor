@@ -21,7 +21,10 @@
     <ClCompile Include="src\Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Transcoder.cpp">
+    <ClCompile Include="src\Decoder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\FrameRecever.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -112,7 +115,10 @@
     <ClInclude Include="src\header.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Transcoder.h">
+    <ClInclude Include="src\Decoder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\FrameRecever.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
