@@ -17,6 +17,7 @@ void VideoHandler(sockpp::tcp_socket sock)
 {
 	uint8_t* bsBuffer = (uint8_t*)malloc(2);
 	DecoderSettings settings;
+	settings.bitrate = 250000;
 	settings.codecId = AV_CODEC_ID_H264;
 
 	Decoder* transcoder = new Decoder(settings);
@@ -62,6 +63,8 @@ void VideoHandler(sockpp::tcp_socket sock)
 				printf("Decoder is still buffering, sending empty!\n");
 			}
 		}
+
+		FrameRecever::ConfirmFrame(sock);
 	}
 }
 

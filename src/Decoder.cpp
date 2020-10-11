@@ -14,10 +14,21 @@ Decoder::Decoder(DecoderSettings settings)
 	codec = avcodec_find_decoder(m_settings.codecId);
 	
 	codecContext = avcodec_alloc_context3(codec);
-
+	
+	codecContext->bit_rate = m_settings.bitrate * 10;
 	codecContext->width = m_settings.xres;
 	codecContext->height = m_settings.yres;
 	codecContext->time_base = { 1, m_settings.fps };
+	codecContext->gop_size = m_settings.gop_size;
+	//codecContext->pix_fmt = m_settings.pix_fmt;
+	codecContext->max_b_frames = m_settings.max_b_frames;
+
+	av_opt_set(codecContext->priv_data, "preset", "medium", 0);
+	av_opt_set(codecContext->priv_data, "rc", "cbr", 0);
+	av_opt_set(codecContext->priv_data, "profile", "high", 0);
+	av_opt_set(codecContext->priv_data, "rc-lookahead", "8", 0);
+
+	//av_opt_set(codecContext->priv_data, "level", "5.1", 0);
 
 	swsContext = sws_getContext(m_settings.xres, m_settings.yres, AV_PIX_FMT_YUV420P, m_settings.xres, m_settings.yres, AV_PIX_FMT_UYVY422, SWS_POINT | SWS_BITEXACT, 0, 0, 0);
 
@@ -70,7 +81,7 @@ std::tuple<size_t, uint8_t*> Decoder::Decode(uint8_t* compressedData, size_t siz
 	i++;
 
 	uint8_t* data[3] = { frame->data[0], frame->data[1], frame->data[2] };
-	int linesize[3] = { m_settings.xres, m_settings.xres /2, m_settings.xres / 2 };
+	int linesize[3] = { m_settings.xres, m_settings.xres / 2, m_settings.xres / 2};
 
 	uint8_t* outData[1] = { returnBuffer };
 	int outLinesize[1] = { m_settings.xres * 2 };
