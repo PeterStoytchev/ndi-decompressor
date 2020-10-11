@@ -25,19 +25,7 @@ void VideoHandler(sockpp::tcp_socket sock)
 	{
 		auto [NDI_video_frame, dataBuffer, dataSize] = FrameRecever::ReceveVideoFrame(sock);
 
-		if (dataSize == 2)
-		{
-			NDI_video_frame.p_data = dataBuffer;
-			NDIlib_send_send_video_v2(pNDI_send, &NDI_video_frame);
-			printf("Encoder is still buffering, sending empty!\n");
-			free(dataBuffer);
-
-			return;
-		}
-
-		auto [decodedSize, decodedData] = transcoder->Decode(dataBuffer, dataSize);
-
-		if (decodedSize == 0)
+		if (dataSize == 0 || dataSize == 2)
 		{
 			NDIlib_video_frame_v2_t bsFrame = NDIlib_video_frame_v2_t(1, 1);
 			bsFrame.timecode = NDI_video_frame.timecode;
@@ -45,16 +33,35 @@ void VideoHandler(sockpp::tcp_socket sock)
 			bsFrame.p_data = bsBuffer;
 
 			NDIlib_send_send_video_v2(pNDI_send, &bsFrame);
-			
+
 			free(dataBuffer);
-			printf("Decoder is still buffering, sending empty!\n");
-			
-			return;
+			printf("Buffering, sending empty!\n");
 		}
+		else
+		{
+			auto [decodedSize, decodedData] = transcoder->Decode(dataBuffer, dataSize);
 
-		NDI_video_frame.p_data = decodedData;
-		NDIlib_send_send_video_v2(pNDI_send, &NDI_video_frame);
+			if (decodedSize != 0)
+			{
+				NDI_video_frame.p_data = decodedData;
+				NDIlib_send_send_video_v2(pNDI_send, &NDI_video_frame);
 
+				free(dataBuffer);
+				//free(decodedData);
+			}
+			else
+			{
+				NDIlib_video_frame_v2_t bsFrame = NDIlib_video_frame_v2_t(1, 1);
+				bsFrame.timecode = NDI_video_frame.timecode;
+				bsFrame.timestamp = NDI_video_frame.timestamp;
+				bsFrame.p_data = bsBuffer;
+
+				NDIlib_send_send_video_v2(pNDI_send, &bsFrame);
+
+				free(dataBuffer);
+				printf("Decoder is still buffering, sending empty!\n");
+			}
+		}
 	}
 }
 
