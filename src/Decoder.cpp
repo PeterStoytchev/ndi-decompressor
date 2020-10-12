@@ -11,7 +11,7 @@ Decoder::Decoder(DecoderSettings settings)
 	frame = av_frame_alloc();
 	pkt = av_packet_alloc();
 
-	codec = avcodec_find_decoder(m_settings.codecId);
+	codec = avcodec_find_decoder(AV_CODEC_ID_H264);
 	
 	codecContext = avcodec_alloc_context3(codec);
 	
@@ -23,12 +23,8 @@ Decoder::Decoder(DecoderSettings settings)
 	//codecContext->pix_fmt = m_settings.pix_fmt;
 	codecContext->max_b_frames = m_settings.max_b_frames;
 
-	av_opt_set(codecContext->priv_data, "preset", "medium", 0);
-	av_opt_set(codecContext->priv_data, "rc", "cbr", 0);
-	av_opt_set(codecContext->priv_data, "profile", "high", 0);
-	av_opt_set(codecContext->priv_data, "rc-lookahead", "8", 0);
-
-	//av_opt_set(codecContext->priv_data, "level", "5.1", 0);
+	//av_opt_set(codecContext->priv_data, "preset", "llhq", 0);
+	//av_opt_set(codecContext->priv_data, "rc", "cbr", 0);
 
 	swsContext = sws_getContext(m_settings.xres, m_settings.yres, AV_PIX_FMT_YUV420P, m_settings.xres, m_settings.yres, AV_PIX_FMT_UYVY422, SWS_POINT | SWS_BITEXACT, 0, 0, 0);
 
@@ -42,7 +38,6 @@ Decoder::Decoder(DecoderSettings settings)
 		assert(0);
 	}
 
-	
 	returnBuffer = (uint8_t*)malloc(m_settings.xres * m_settings.yres * 2);
 }
 
