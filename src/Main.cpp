@@ -35,6 +35,8 @@ void VideoHandler(sockpp::tcp_socket sock)
 
 			NDIlib_send_send_video_v2(pNDI_send, &bsFrame);
 
+			
+
 			free(dataBuffer);
 			printf("Buffering, sending empty!\n");
 		}

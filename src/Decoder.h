@@ -20,7 +20,7 @@ extern "C"
 	#pragma comment(lib, "swscale")
 }
 
-#define LOG_ERR(ret) av_strerror(ret, errorBuf, 500); printf("&s\n", errorBuf); memset(errorBuf, 0, 500);
+#define LOG_ERR(ret) av_strerror(ret, errorBuf, 500); printf("%s\n", errorBuf); memset(errorBuf, 0, 500);
 
 struct DecoderSettings
 {
@@ -28,7 +28,7 @@ struct DecoderSettings
 
 	int64_t bitrate;
 
-	//AVPixelFormat pix_fmt = AV_PIX_FMT_NV12;
+	AVPixelFormat pix_fmt = AV_PIX_FMT_NV12;
 	int gop_size = 30;
 	int max_b_frames = 0;
 
@@ -36,6 +36,8 @@ struct DecoderSettings
 	int yres = 1080;
 
 	int fps = 60;
+
+
 };
 
 class Decoder
@@ -45,8 +47,6 @@ public:
 
 	std::tuple<size_t, uint8_t*> Decode(uint8_t* compressedData, size_t size);
 private:
-	void Repack();
-
 	DecoderSettings m_settings;
 	int ret, i;
 
@@ -54,6 +54,8 @@ private:
 	AVCodecContext * codecContext = NULL;
 	
 	AVFrame* frame;
+	AVFrame* tmp_frame = NULL;
+	AVFrame* sw_frame;
 	AVPacket* pkt;
 	
 	uint8_t* returnBuffer;

@@ -1,5 +1,10 @@
 #include "FrameRecever.h"
 
+extern "C"
+{
+	#include <libavutil/common.h>
+}
+
 std::tuple<NDIlib_video_frame_v2_t, uint8_t*, size_t> FrameRecever::ReceveVideoFrame(sockpp::tcp_socket& sock)
 {
 	VideoFrame frame;
@@ -12,6 +17,7 @@ std::tuple<NDIlib_video_frame_v2_t, uint8_t*, size_t> FrameRecever::ReceveVideoF
 	NDIlib_video_frame_v2_t NDI_video_frame;
 
 	char* dataBuffer = (char*)malloc(frame.videoFrame.xres * frame.videoFrame.yres * 2);
+	
 
 	if (sock.read_n((void*)dataBuffer, frame.dataSize) == -1)
 	{
