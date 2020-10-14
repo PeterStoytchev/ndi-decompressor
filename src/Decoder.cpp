@@ -51,13 +51,9 @@ Decoder::Decoder(DecoderSettings settings)
 
 	codecContext = avcodec_alloc_context3(codec);
 
-	codecContext->bit_rate = m_settings.bitrate * 10;
 	codecContext->width = m_settings.xres;
 	codecContext->height = m_settings.yres;
 	codecContext->time_base = { 1, m_settings.fps };
-	codecContext->gop_size = m_settings.gop_size;
-	codecContext->max_b_frames = m_settings.max_b_frames;
-	//codecContext->pix_fmt = m_settings.pix_fmt;
 	codecContext->get_format = get_hw_format;
 
 	int err = 0;
@@ -89,7 +85,8 @@ std::tuple<size_t, uint8_t*> Decoder::Decode(uint8_t* compressedData, size_t siz
 		assert(0);
 	}
 
-	ret = av_packet_from_data(pkt, compressedData, size);
+	pkt->data = compressedData;
+	pkt->size = size;
 
 	frame->pts = i;
 

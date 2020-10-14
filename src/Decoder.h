@@ -26,18 +26,10 @@ struct DecoderSettings
 {
 	AVCodecID codecId;
 
-	int64_t bitrate;
-
-	AVPixelFormat pix_fmt = AV_PIX_FMT_NV12;
-	int gop_size = 30;
-	int max_b_frames = 0;
-
 	int xres = 1920;
 	int yres = 1080;
 
 	int fps = 60;
-
-
 };
 
 class Decoder

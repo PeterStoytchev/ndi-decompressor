@@ -17,13 +17,13 @@ void VideoHandler(sockpp::tcp_socket sock)
 {
 	uint8_t* bsBuffer = (uint8_t*)malloc(2);
 	DecoderSettings settings;
-	settings.bitrate = 2500000;
 	settings.codecId = AV_CODEC_ID_H264;
 
 	Decoder* transcoder = new Decoder(settings);
 
 	while (!exit_loop)
 	{
+		//TODO: make the data buufer be a one time thing, that way we dont have to allocate memory every frame
 		auto [NDI_video_frame, dataBuffer, dataSize] = FrameRecever::ReceveVideoFrame(sock);
 
 		if (dataSize == 0 || dataSize == 2)
@@ -34,8 +34,6 @@ void VideoHandler(sockpp::tcp_socket sock)
 			bsFrame.p_data = bsBuffer;
 
 			NDIlib_send_send_video_v2(pNDI_send, &bsFrame);
-
-			
 
 			free(dataBuffer);
 			printf("Buffering, sending empty!\n");
@@ -74,11 +72,11 @@ void AudioHandler(sockpp::tcp_socket sock)
 {
 	while (!exit_loop)
 	{
+		//TODO: make the data buufer be a one time thing, that way we dont have to allocate memory every frame
+
 		auto [NDI_audio_frame, data, dataSize] = FrameRecever::ReceveAudioFrame(sock);
 
 		NDI_audio_frame.p_data = data;
-
-		//printf("Submitted audio frame with timestamp: %" PRId64 "\n", NDI_audio_frame.timestamp);
 
 		NDIlib_send_send_audio_v2(pNDI_send, &NDI_audio_frame);
 
