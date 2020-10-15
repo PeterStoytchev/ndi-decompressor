@@ -70,6 +70,7 @@ Decoder::Decoder(DecoderSettings settings)
 	}
 	else
 	{
+		codecContext->pix_fmt = AV_PIX_FMT_YUV420P;
 		swsContext = sws_getContext(m_settings.xres, m_settings.yres, AV_PIX_FMT_YUV420P, m_settings.xres, m_settings.yres, AV_PIX_FMT_UYVY422, SWS_POINT | SWS_BITEXACT, 0, 0, 0);
 	}
 
@@ -122,7 +123,6 @@ std::tuple<size_t, uint8_t*> Decoder::Decode(uint8_t* compressedData, size_t siz
 	uint8_t* outData[1] = { returnBuffer };
 	int outLinesize[1] = { m_settings.xres * 2 };
 
-
 	if (m_settings.useHardwareAceel)
 	{
 		if ((ret = av_hwframe_transfer_data(sw_frame, frame, 0)))
@@ -152,4 +152,3 @@ std::tuple<size_t, uint8_t*> Decoder::Decode(uint8_t* compressedData, size_t siz
 
 	return std::make_tuple(m_settings.xres * m_settings.yres * 2, returnBuffer);
 }
-

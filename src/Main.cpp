@@ -1,10 +1,16 @@
-#include "header.h"
+#include <iostream>
+#include <thread>
+#include <atomic>
+
+#include "Processing.NDI.Lib.h"
+#include "sockpp/tcp_acceptor.h"
+#include "sockpp/version.h"
 
 #include "Decoder.h"
 #include "FrameRecever.h"
 
-std::atomic<NDIlib_send_instance_t> pNDI_send;
 
+NDIlib_send_instance_t pNDI_send;
 
 static std::atomic<bool> exit_loop(false);
 static void sigint_handler(int)
@@ -101,14 +107,14 @@ int main()
 		sockpp::tcp_socket video_socket = acceptor_video.accept(&peer);
 		sockpp::tcp_socket audio_socket = acceptor_audio.accept(&peer);
 
-		LOG("Incoming connection from " << peer);
+		std::cout << "Incoming connection from " << peer;
 
 		NDIlib_send_create_t NDI_send_create_desc;
 		NDI_send_create_desc.p_ndi_name = settings.srcName;
 
 		pNDI_send = NDIlib_send_create(&NDI_send_create_desc);
 
-		std::thread video_thread(VideoHandler, std::move(video_socket));
+		std::thread video_thread(VideoHandler, std::move(video_socket), settings);
 		video_thread.detach();
 
 
