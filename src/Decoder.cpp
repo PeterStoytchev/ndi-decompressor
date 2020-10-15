@@ -23,57 +23,62 @@ static enum AVPixelFormat get_hw_format(AVCodecContext* ctx, const enum AVPixelF
 Decoder::Decoder(DecoderSettings settings)
 {
 	errorBuf = (char*)malloc(500);
-
     m_settings = settings;
-
 	pkt = av_packet_alloc();
-	
-	codec = avcodec_find_decoder(AV_CODEC_ID_H264);
-	
-	enum AVHWDeviceType type = av_hwdevice_find_type_by_name("d3d11va");
-
-	for (int i = 0;; i++)
-	{
-		const AVCodecHWConfig* config = avcodec_get_hw_config(codec, i);
-
-		if (!config)
-		{
-			printf("fuck, decoder %s doesnt support device type %s\n", codec->name, av_hwdevice_get_type_name(type));
-			assert(0);
-		}
-
-		if (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX && config->device_type == type)
-		{
-			hw_pix_fmt = config->pix_fmt;
-			break;
-		}
-	}
+	codec = avcodec_find_decoder(m_settings.codecId);
 
 	codecContext = avcodec_alloc_context3(codec);
-
 	codecContext->width = m_settings.xres;
 	codecContext->height = m_settings.yres;
 	codecContext->time_base = { 1, m_settings.fps };
-	codecContext->get_format = get_hw_format;
 
-	int err = 0;
-	AVBufferRef* hw_device_ctx = NULL;
-
-	if ((err = av_hwdevice_ctx_create(&hw_device_ctx, type, NULL, NULL, 0)))
+	if (m_settings.useHardwareAceel)
 	{
-		printf("OOOPSS\n");
+		enum AVHWDeviceType type = av_hwdevice_find_type_by_name("d3d11va");
+
+		for (int i = 0;; i++)
+		{
+			const AVCodecHWConfig* config = avcodec_get_hw_config(codec, i);
+
+			if (!config)
+			{
+				printf("fuck, decoder %s doesnt support device type %s\n", codec->name, av_hwdevice_get_type_name(type));
+				assert(0);
+			}
+
+			if (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX && config->device_type == type)
+			{
+				hw_pix_fmt = config->pix_fmt;
+				break;
+			}
+		}
+
+		codecContext->get_format = get_hw_format;
+
+		int err = 0;
+		AVBufferRef* hw_device_ctx = NULL;
+
+		if ((err = av_hwdevice_ctx_create(&hw_device_ctx, type, NULL, NULL, 0)))
+		{
+			printf("OOOPSS\n");
+		}
+
+		codecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+
+		swsContext = sws_getContext(m_settings.xres, m_settings.yres, AV_PIX_FMT_NV12, m_settings.xres, m_settings.yres, AV_PIX_FMT_UYVY422, SWS_POINT | SWS_BITEXACT, 0, 0, 0);
+
 	}
-
-	codecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
-
-	swsContext = sws_getContext(m_settings.xres, m_settings.yres, AV_PIX_FMT_NV12, m_settings.xres, m_settings.yres, AV_PIX_FMT_UYVY422, SWS_POINT | SWS_BITEXACT, 0, 0, 0);
+	else
+	{
+		swsContext = sws_getContext(m_settings.xres, m_settings.yres, AV_PIX_FMT_YUV420P, m_settings.xres, m_settings.yres, AV_PIX_FMT_UYVY422, SWS_POINT | SWS_BITEXACT, 0, 0, 0);
+	}
 
 	if (avcodec_open2(codecContext, codec, NULL) < 0)
 	{
 		printf("Could not open codec!\n");
 		assert(0);
 	}
-
+	
 	returnBuffer = (uint8_t*)_aligned_malloc(m_settings.xres * m_settings.yres * 2, 32);
 }
 
@@ -114,23 +119,33 @@ std::tuple<size_t, uint8_t*> Decoder::Decode(uint8_t* compressedData, size_t siz
 		assert(0);
 	}
 
-	if ((ret = av_hwframe_transfer_data(sw_frame, frame, 0)))
-	{
-		printf("done goofed GPU->CPU!\n");
-		assert(0);
-	}
-
-	tmp_frame = sw_frame;
-
-	i++;
-
-	uint8_t* data[2] = { tmp_frame->data[0], tmp_frame->data[1] };
-	int linesize[2] = { m_settings.xres, m_settings.xres};
-
 	uint8_t* outData[1] = { returnBuffer };
 	int outLinesize[1] = { m_settings.xres * 2 };
 
-	sws_scale(swsContext, data, linesize, 0, m_settings.yres, outData, outLinesize);
+
+	if (m_settings.useHardwareAceel)
+	{
+		if ((ret = av_hwframe_transfer_data(sw_frame, frame, 0)))
+		{
+			printf("done goofed GPU->CPU!\n");
+			assert(0);
+		}
+
+		uint8_t* data[2] = { sw_frame->data[0], sw_frame->data[1] };
+		int linesize[2] = { m_settings.xres, m_settings.xres };
+
+		sws_scale(swsContext, data, linesize, 0, m_settings.yres, outData, outLinesize);
+
+	}
+	else
+	{
+		uint8_t* data[3] = { frame->data[0], frame->data[1], frame->data[2] };
+		int linesize[3] = { m_settings.xres, m_settings.xres / 2, m_settings.xres / 2 };
+
+		sws_scale(swsContext, data, linesize, 0, m_settings.yres, outData, outLinesize);
+	}
+
+	i++;
 
 	av_frame_free(&frame);
 	av_frame_free(&sw_frame);

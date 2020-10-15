@@ -24,12 +24,14 @@ extern "C"
 
 struct DecoderSettings
 {
+	bool useHardwareAceel;
+
+	int videoPort, audioPort;
+
 	AVCodecID codecId;
 
-	int xres = 1920;
-	int yres = 1080;
-
-	int fps = 60;
+	int xres, yres, fps;
+	const char* srcName;
 };
 
 class Decoder

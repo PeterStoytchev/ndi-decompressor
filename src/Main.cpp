@@ -12,12 +12,9 @@ static void sigint_handler(int)
 	exit_loop = true;
 }
 
-
-void VideoHandler(sockpp::tcp_socket sock)
+void VideoHandler(sockpp::tcp_socket sock, DecoderSettings settings)
 {
 	uint8_t* bsBuffer = (uint8_t*)malloc(2);
-	DecoderSettings settings;
-	settings.codecId = AV_CODEC_ID_H264;
 
 	Decoder* transcoder = new Decoder(settings);
 
@@ -84,15 +81,19 @@ void AudioHandler(sockpp::tcp_socket sock)
 	}
 }
 
+
+
 int main()
 {
+	DecoderSettings settings;
+
 	sockpp::socket_initializer sockInit;
 
-	sockpp::tcp_acceptor acceptor_video(1337);
-	sockpp::tcp_acceptor acceptor_audio(1338);
+	sockpp::tcp_acceptor acceptor_video(settings.videoPort);
+	sockpp::tcp_acceptor acceptor_audio(settings.audioPort);
 
-	LOG("Waiting for video on port 1337");
-	LOG("Waiting for audio on port 1338");
+	printf("Video wating on port: %d\n", settings.videoPort);
+	printf("Audio wating on port: %d\n", settings.audioPort);
 
 	while (true) 
 	{
@@ -103,8 +104,7 @@ int main()
 		LOG("Incoming connection from " << peer);
 
 		NDIlib_send_create_t NDI_send_create_desc;
-		NDI_send_create_desc.p_ndi_name = "zzzz";
-		//NDI_send_create_desc.clock_video = true;
+		NDI_send_create_desc.p_ndi_name = settings.srcName;
 
 		pNDI_send = NDIlib_send_create(&NDI_send_create_desc);
 
