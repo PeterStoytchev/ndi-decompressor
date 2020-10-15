@@ -95,8 +95,8 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	//DecoderSettings settings = CreateSettings(argv[1]);
-	DecoderSettings settings = CreateSettings("C:\\Users\\Seph\\Desktop\\ndi-server\\bin\\Debug-Win32\\exampleConfig.cfg");
+	DecoderSettings settings = CreateSettings(argv[1]);
+	//DecoderSettings settings = CreateSettings("C:\\Users\\Seph\\Desktop\\ndi-server\\bin\\Debug-Win32\\exampleConfig.cfg");
 
 	sockpp::socket_initializer sockInit;
 
