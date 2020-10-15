@@ -32,6 +32,7 @@
     <None Include=".gitignore" />
     <None Include="LICENSE" />
     <None Include="README.md" />
+    <None Include="src\exampleConfig.cfg" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vendor\include\sockpp\acceptor.h">
@@ -110,9 +111,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\utils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\header.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Decoder.h">

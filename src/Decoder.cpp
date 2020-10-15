@@ -19,7 +19,6 @@ static enum AVPixelFormat get_hw_format(AVCodecContext* ctx, const enum AVPixelF
 	return AV_PIX_FMT_NONE;
 }
 
-
 Decoder::Decoder(DecoderSettings settings)
 {
 	errorBuf = (char*)malloc(500);

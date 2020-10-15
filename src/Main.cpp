@@ -87,11 +87,16 @@ void AudioHandler(sockpp::tcp_socket sock)
 	}
 }
 
-
-
-int main()
+int main(int argc, char** argv)
 {
-	DecoderSettings settings;
+	if (argc == 0)
+	{
+		printf("No config file provided!\n");
+		return -1;
+	}
+
+	//DecoderSettings settings = CreateSettings(argv[1]);
+	DecoderSettings settings = CreateSettings("C:\\Users\\Seph\\Desktop\\ndi-server\\bin\\Debug-Win32\\exampleConfig.cfg");
 
 	sockpp::socket_initializer sockInit;
 
@@ -107,7 +112,7 @@ int main()
 		sockpp::tcp_socket video_socket = acceptor_video.accept(&peer);
 		sockpp::tcp_socket audio_socket = acceptor_audio.accept(&peer);
 
-		std::cout << "Incoming connection from " << peer;
+		std::cout << "Incoming connection from " << peer << std::endl;
 
 		NDIlib_send_create_t NDI_send_create_desc;
 		NDI_send_create_desc.p_ndi_name = settings.srcName;

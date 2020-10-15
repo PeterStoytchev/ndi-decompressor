@@ -179,11 +179,11 @@
     <None Include=".gitignore" />
     <None Include="LICENSE" />
     <None Include="README.md" />
+    <None Include="src\exampleConfig.cfg" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Frame.h" />
     <ClInclude Include="src\FrameRecever.h" />
-    <ClInclude Include="src\header.h" />
     <ClInclude Include="src\Decoder.h" />
     <ClInclude Include="src\utils.h" />
     <ClInclude Include="vendor\include\sockpp\acceptor.h" />
