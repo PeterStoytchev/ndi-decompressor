@@ -5,7 +5,7 @@ extern "C"
 	#include <libavutil/common.h>
 }
 
-std::tuple<NDIlib_video_frame_v2_t, uint8_t*, size_t> FrameRecever::ReceveVideoFrame(sockpp::tcp_socket& sock)
+std::tuple<NDIlib_video_frame_v2_t, size_t> FrameRecever::ReceveVideoFrame(sockpp::tcp_socket& sock, char* dataBuffer)
 {
 	VideoFrame frame;
 
@@ -16,16 +16,12 @@ std::tuple<NDIlib_video_frame_v2_t, uint8_t*, size_t> FrameRecever::ReceveVideoF
 
 	NDIlib_video_frame_v2_t NDI_video_frame;
 
-	char* dataBuffer = (char*)malloc(frame.videoFrame.xres * frame.videoFrame.yres * 2);
-	
-
 	if (sock.read_n((void*)dataBuffer, frame.dataSize) == -1)
 	{
 		printf("Failed to read video data!\nError: %s\n", sock.last_error_str());
 	}
 
-	return std::make_tuple(frame.videoFrame, (uint8_t*)dataBuffer, frame.dataSize);
-
+	return std::make_tuple(frame.videoFrame, frame.dataSize);
 }
 
 void FrameRecever::ConfirmFrame(sockpp::tcp_socket& sock)

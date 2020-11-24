@@ -24,10 +24,12 @@ void VideoHandler(sockpp::tcp_socket sock, DecoderSettings settings)
 
 	Decoder* transcoder = new Decoder(settings);
 
+	char* dataBuffer = (char*)malloc(settings.xres * settings.yres * 2);
+
 	while (!exit_loop)
 	{
 		//TODO: make the data buufer be a one time thing, that way we dont have to allocate memory every frame
-		auto [NDI_video_frame, dataBuffer, dataSize] = FrameRecever::ReceveVideoFrame(sock);
+		auto [NDI_video_frame, dataSize] = FrameRecever::ReceveVideoFrame(sock, dataBuffer);
 
 		if (dataSize == 0 || dataSize == 2)
 		{
@@ -38,20 +40,16 @@ void VideoHandler(sockpp::tcp_socket sock, DecoderSettings settings)
 
 			NDIlib_send_send_video_v2(pNDI_send, &bsFrame);
 
-			free(dataBuffer);
 			printf("Buffering, sending empty!\n");
 		}
 		else
 		{
-			auto [decodedSize, decodedData] = transcoder->Decode(dataBuffer, dataSize);
+			auto [decodedSize, decodedData] = transcoder->Decode((uint8_t*)dataBuffer, dataSize);
 
 			if (decodedSize != 0)
 			{
 				NDI_video_frame.p_data = decodedData;
 				NDIlib_send_send_video_v2(pNDI_send, &NDI_video_frame);
-
-				free(dataBuffer);
-				//free(decodedData);
 			}
 			else
 			{
@@ -62,7 +60,6 @@ void VideoHandler(sockpp::tcp_socket sock, DecoderSettings settings)
 
 				NDIlib_send_send_video_v2(pNDI_send, &bsFrame);
 
-				free(dataBuffer);
 				printf("Decoder is still buffering, sending empty!\n");
 			}
 		}
@@ -95,8 +92,7 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	DecoderSettings settings = CreateSettings(argv[1]);
-	//DecoderSettings settings = CreateSettings("C:\\Users\\Seph\\Desktop\\ndi-server\\bin\\Debug-Win32\\exampleConfig.cfg");
+	DecoderSettings settings = CreateSettings("config.cfg");
 
 	sockpp::socket_initializer sockInit;
 

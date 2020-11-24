@@ -65,7 +65,6 @@ Decoder::Decoder(DecoderSettings settings)
 		codecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
 
 		swsContext = sws_getContext(m_settings.xres, m_settings.yres, AV_PIX_FMT_NV12, m_settings.xres, m_settings.yres, AV_PIX_FMT_UYVY422, SWS_POINT | SWS_BITEXACT, 0, 0, 0);
-
 	}
 	else
 	{
@@ -79,7 +78,7 @@ Decoder::Decoder(DecoderSettings settings)
 		assert(0);
 	}
 	
-	returnBuffer = (uint8_t*)_aligned_malloc(m_settings.xres * m_settings.yres * 2, 32);
+	returnBuffer = (uint8_t*)malloc(m_settings.xres * m_settings.yres * 2);
 }
 
 std::tuple<size_t, uint8_t*> Decoder::Decode(uint8_t* compressedData, size_t size)
