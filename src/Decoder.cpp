@@ -30,10 +30,12 @@ Decoder::Decoder(DecoderSettings settings)
 	codecContext->width = m_settings.xres;
 	codecContext->height = m_settings.yres;
 	codecContext->time_base = { 1, m_settings.fps };
+	codecContext->gop_size = 60;
+	codecContext->max_b_frames = 0;
 
 	if (m_settings.useHardwareAceel)
 	{
-		enum AVHWDeviceType type = av_hwdevice_find_type_by_name("d3d11va");
+		enum AVHWDeviceType type = av_hwdevice_find_type_by_name("dxva2");
 
 		for (int i = 0;; i++)
 		{
@@ -69,8 +71,12 @@ Decoder::Decoder(DecoderSettings settings)
 	else
 	{
 		codecContext->pix_fmt = AV_PIX_FMT_YUV420P;
+		
 		swsContext = sws_getContext(m_settings.xres, m_settings.yres, AV_PIX_FMT_YUV420P, m_settings.xres, m_settings.yres, AV_PIX_FMT_UYVY422, SWS_POINT | SWS_BITEXACT, 0, 0, 0);
 	}
+
+	av_opt_set(codecContext->priv_data, "profile", "high", 0);
+	av_opt_set(codecContext->priv_data, "rc", "cbr", 0);
 
 	if (avcodec_open2(codecContext, codec, NULL) < 0)
 	{

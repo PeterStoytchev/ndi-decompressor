@@ -105,11 +105,10 @@ int main(int argc, char** argv)
 	while (true) 
 	{
 		sockpp::inet_address peer;
+		sockpp::inet_address peer2;
 		sockpp::tcp_socket video_socket = acceptor_video.accept(&peer);
-		sockpp::tcp_socket audio_socket = acceptor_audio.accept(&peer);
-
-		std::cout << "Incoming connection from " << peer << std::endl;
-
+		sockpp::tcp_socket audio_socket = acceptor_audio.accept(&peer2);
+			
 		NDIlib_send_create_t NDI_send_create_desc;
 		NDI_send_create_desc.p_ndi_name = settings.srcName;
 
