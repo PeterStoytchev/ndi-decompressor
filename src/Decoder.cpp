@@ -23,24 +23,23 @@ Decoder::Decoder(DecoderSettings settings)
 {
 	errorBuf = (char*)malloc(500);
     m_settings = settings;
-	pkt = av_packet_alloc();
-	codec = avcodec_find_decoder(m_settings.codecId);
 
+	codec = avcodec_find_decoder_by_name(m_settings.codecName.c_str());
+	
 	codecContext = avcodec_alloc_context3(codec);
 	codecContext->width = m_settings.xres;
 	codecContext->height = m_settings.yres;
-	codecContext->time_base = { 1, m_settings.fps };
-	codecContext->gop_size = 60;
-	codecContext->max_b_frames = 0;
+	codecContext->framerate = { 1, m_settings.fps };
+	
+	pkt = av_packet_alloc();
+	returnBuffer = (uint8_t*)malloc(m_settings.xres * m_settings.yres * 2);
 
 	if (m_settings.useHardwareAceel)
 	{
-		enum AVHWDeviceType type = av_hwdevice_find_type_by_name("dxva2");
-
+		enum AVHWDeviceType type = av_hwdevice_find_type_by_name(m_settings.hwDeviceType.c_str());
 		for (int i = 0;; i++)
 		{
 			const AVCodecHWConfig* config = avcodec_get_hw_config(codec, i);
-
 			if (!config)
 			{
 				printf("fuck, decoder %s doesnt support device type %s\n", codec->name, av_hwdevice_get_type_name(type));
@@ -53,17 +52,14 @@ Decoder::Decoder(DecoderSettings settings)
 				break;
 			}
 		}
-
 		codecContext->get_format = get_hw_format;
 
 		int err = 0;
 		AVBufferRef* hw_device_ctx = NULL;
-
 		if ((err = av_hwdevice_ctx_create(&hw_device_ctx, type, NULL, NULL, 0)))
 		{
 			printf("OOOPSS\n");
 		}
-
 		codecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
 
 		swsContext = sws_getContext(m_settings.xres, m_settings.yres, AV_PIX_FMT_NV12, m_settings.xres, m_settings.yres, AV_PIX_FMT_UYVY422, SWS_POINT | SWS_BITEXACT, 0, 0, 0);
@@ -72,11 +68,18 @@ Decoder::Decoder(DecoderSettings settings)
 	{
 		codecContext->pix_fmt = AV_PIX_FMT_YUV420P;
 		
+		codecContext->thread_count = m_settings.threads;
+		codecContext->slice_count = m_settings.threads;
+
 		swsContext = sws_getContext(m_settings.xres, m_settings.yres, AV_PIX_FMT_YUV420P, m_settings.xres, m_settings.yres, AV_PIX_FMT_UYVY422, SWS_POINT | SWS_BITEXACT, 0, 0, 0);
 	}
 
-	av_opt_set(codecContext->priv_data, "profile", "high", 0);
-	av_opt_set(codecContext->priv_data, "rc", "cbr", 0);
+	for (std::pair<std::string, std::string> pair : m_settings.priv_data)
+	{
+		av_opt_set(codecContext->priv_data, pair.first.c_str(), pair.second.c_str(), 0);
+	}
+
+	//av_opt_set(codecContext->priv_data, "rc", "cbr", 0);
 
 	if (avcodec_open2(codecContext, codec, NULL) < 0)
 	{
@@ -84,7 +87,6 @@ Decoder::Decoder(DecoderSettings settings)
 		assert(0);
 	}
 	
-	returnBuffer = (uint8_t*)malloc(m_settings.xres * m_settings.yres * 2);
 }
 
 std::tuple<size_t, uint8_t*> Decoder::Decode(uint8_t* compressedData, size_t size)
@@ -139,7 +141,6 @@ std::tuple<size_t, uint8_t*> Decoder::Decode(uint8_t* compressedData, size_t siz
 		int linesize[2] = { m_settings.xres, m_settings.xres };
 
 		sws_scale(swsContext, data, linesize, 0, m_settings.yres, outData, outLinesize);
-
 	}
 	else
 	{

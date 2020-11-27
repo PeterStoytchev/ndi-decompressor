@@ -10,6 +10,7 @@
 #include "FrameRecever.h"
 
 
+
 NDIlib_send_instance_t pNDI_send;
 
 static std::atomic<bool> exit_loop(false);
@@ -21,7 +22,6 @@ static void sigint_handler(int)
 void VideoHandler(sockpp::tcp_socket sock, DecoderSettings settings)
 {
 	uint8_t* bsBuffer = (uint8_t*)malloc(2);
-
 	Decoder* transcoder = new Decoder(settings);
 
 	char* dataBuffer = (char*)malloc(settings.xres * settings.yres * 2);
@@ -92,10 +92,9 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	DecoderSettings settings = CreateSettings("config.cfg");
+	DecoderSettings settings = DecoderSettings("C:/Users/Seph/Desktop/ndi-server/config.yaml");
 
 	sockpp::socket_initializer sockInit;
-
 	sockpp::tcp_acceptor acceptor_video(settings.videoPort);
 	sockpp::tcp_acceptor acceptor_audio(settings.audioPort);
 
@@ -110,7 +109,7 @@ int main(int argc, char** argv)
 		sockpp::tcp_socket audio_socket = acceptor_audio.accept(&peer2);
 			
 		NDIlib_send_create_t NDI_send_create_desc;
-		NDI_send_create_desc.p_ndi_name = settings.srcName;
+		NDI_send_create_desc.p_ndi_name = settings.srcName.c_str();
 
 		pNDI_send = NDIlib_send_create(&NDI_send_create_desc);
 

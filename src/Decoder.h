@@ -1,10 +1,19 @@
 #pragma once
 
 #include <tuple>
-#include <fstream>
 #include <unordered_map>
 #include <assert.h>
 #include <string>
+
+#include "yaml-cpp/yaml.h"
+
+#ifdef _DEBUG
+#pragma comment(lib, "libyaml-debug")
+#endif // _DEBUG
+
+#ifndef _DEBUG
+#pragma comment(lib, "libyaml-release")
+#endif
 
 extern "C"
 {
@@ -28,127 +37,62 @@ extern "C"
 
 struct DecoderSettings
 {
-	bool useHardwareAceel;
+	DecoderSettings() {}
 
-	int videoPort, audioPort;
-
-	AVCodecID codecId;
-
-	int xres, yres, fps;
-	const char* srcName;
-};
-
-static std::tuple<std::string, std::string> SplitString(std::string& str, char c)
-{
-	int firstIndex = str.find_first_of(c);
-
-	return std::make_tuple(str.substr(0, firstIndex), str.substr(firstIndex + 1, str.size() - firstIndex));
-}
-
-static const std::unordered_map<std::string, int> string_to_case{
-   {"useHardwareAceel",1},
-   {"videoPort",2},
-   {"audioPort",3},
-   {"codec",4},
-   {"xres",5},
-   {"yres",6},
-   {"fps",7},
-   {"srcName",8}
-};
-
-static DecoderSettings CreateSettings(const char* path)
-{
-	DecoderSettings localSettings;
-
-	std::ifstream cfgFile;
-	cfgFile.open(path);
-
-	std::string line;
-
-	//please dont look at this
-	while (getline(cfgFile, line))
+	DecoderSettings(const DecoderSettings& settings) //this is here just to ensure that the priv data is copied right
 	{
-		auto [cfgField, cfgValue] = SplitString(line, ':');
+		useHardwareAceel = settings.useHardwareAceel;
 
-		switch (string_to_case.at(cfgField))
+		hwDeviceType = settings.hwDeviceType;
+		codecName = settings.codecName;
+		srcName = settings.srcName;
+		videoPort = settings.videoPort;
+		audioPort = settings.audioPort;
+		xres = settings.xres;
+		yres = settings.yres;
+		fps = settings.fps;
+		threads = settings.threads;
+
+		priv_data = settings.priv_data;
+	}
+
+	DecoderSettings(const char* path)
+	{
+		YAML::Node config = YAML::LoadFile(path);
+
+		useHardwareAceel = config["useHardwareAccel"].as<bool>();
+
+		hwDeviceType = config["hwDeviceName"].as<std::string>();
+		srcName = config["srcName"].as<std::string>();
+		codecName = config["codecName"].as<std::string>();
+
+
+		threads = config["threads"].as<int>();
+		videoPort = config["videoPort"].as<int>();
+		audioPort = config["audioPort"].as<int>();
+
+
+		xres = config["xres"].as<int>();
+		yres = config["yres"].as<int>();
+		fps = config["fps"].as<int>();
+
+		for (const auto& kv : config["priv_data"])
 		{
-		case 1:
-		{
-			if (cfgValue == std::string("true"))
-			{
-				localSettings.useHardwareAceel = true;
-			}
-			else
-			{
-				localSettings.useHardwareAceel = false;
-			}
-			break;
-		}
-
-		case 2:
-		{
-			localSettings.videoPort = std::atoi(cfgValue.c_str());
-			break;
-		}
-
-		case 3:
-		{
-			localSettings.audioPort = std::atoi(cfgValue.c_str());
-			break;
-		}
-
-		case 4:
-		{
-			if (cfgValue == std::string("H264"))
-			{
-				localSettings.codecId = AV_CODEC_ID_H264;
-			}
-			else if (cfgValue == std::string("H265"))
-			{
-				localSettings.codecId = AV_CODEC_ID_H265;
-			}
-			else
-			{
-				localSettings.codecId = AV_CODEC_ID_NONE;
-				assert(0 && "Invalid codec provided");
-			}
-
-			break;
-		}
-
-		case 5:
-		{
-			localSettings.xres = std::atoi(cfgValue.c_str());
-			break;
-		}
-
-		case 6:
-		{
-			localSettings.yres = std::atoi(cfgValue.c_str());
-			break;
-		}
-
-		case 7:
-		{
-			localSettings.fps = std::atoi(cfgValue.c_str());
-			break;
-		}
-
-		case 8:
-		{
-			localSettings.srcName = (char*)malloc(cfgValue.size() - 4);
-			memcpy((void*)localSettings.srcName, cfgValue.c_str(), cfgValue.size());
-			break;
-		}
-
-		default:
-			break;
+			std::string first = kv.first.as<std::string>();
+			std::string second = kv.second.as<std::string>();
+			priv_data.emplace(first, second);
 		}
 	}
 
-	return localSettings;
-}
+	bool useHardwareAceel;
+	int videoPort, audioPort, xres, yres, fps, threads;
 
+	std::string hwDeviceType;
+	std::string codecName;
+	std::string srcName;
+
+	std::unordered_map<std::string, std::string> priv_data;
+};
 
 
 class Decoder
