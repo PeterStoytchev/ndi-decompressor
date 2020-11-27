@@ -28,7 +28,6 @@ void VideoHandler(sockpp::tcp_socket sock, DecoderSettings settings)
 
 	while (!exit_loop)
 	{
-		//TODO: make the data buufer be a one time thing, that way we dont have to allocate memory every frame
 		auto [NDI_video_frame, dataSize] = FrameRecever::ReceveVideoFrame(sock, dataBuffer);
 
 		if (dataSize == 0 || dataSize == 2)
@@ -92,7 +91,7 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	DecoderSettings settings = DecoderSettings("C:/Users/Seph/Desktop/ndi-server/config.yaml");
+	DecoderSettings settings = DecoderSettings("config.yaml");
 
 	sockpp::socket_initializer sockInit;
 	sockpp::tcp_acceptor acceptor_video(settings.videoPort);
