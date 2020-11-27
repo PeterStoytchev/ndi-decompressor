@@ -78,9 +78,7 @@ struct DecoderSettings
 
 		for (const auto& kv : config["priv_data"])
 		{
-			std::string first = kv.first.as<std::string>();
-			std::string second = kv.second.as<std::string>();
-			priv_data.emplace(first, second);
+			priv_data.emplace(kv.first.as<std::string>(), kv.second.as<std::string>());
 		}
 	}
 
@@ -103,10 +101,9 @@ public:
 	
 private:
 	DecoderSettings m_settings;
-	int ret, i;
 
 	AVCodec* codec;
-	AVCodecContext * codecContext = NULL;
+	AVCodecContext* codecContext = NULL;
 	
 	AVFrame* frame;
 	AVFrame* tmp_frame = NULL;
@@ -116,6 +113,7 @@ private:
 	uint8_t* returnBuffer;
 
 	struct SwsContext* swsContext = NULL;
-
+	
+	int ret, i;
 	char* errorBuf;
 };

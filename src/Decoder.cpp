@@ -79,8 +79,6 @@ Decoder::Decoder(DecoderSettings settings)
 		av_opt_set(codecContext->priv_data, pair.first.c_str(), pair.second.c_str(), 0);
 	}
 
-	//av_opt_set(codecContext->priv_data, "rc", "cbr", 0);
-
 	if (avcodec_open2(codecContext, codec, NULL) < 0)
 	{
 		printf("Could not open codec!\n");
