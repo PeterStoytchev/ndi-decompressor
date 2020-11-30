@@ -5,20 +5,34 @@ extern "C"
 	#include <libavutil/common.h>
 }
 
-VideoFramePair FrameRecever::ReceveVideoFrame(sockpp::tcp_socket& sock, char* dataBuffer)
+VideoFrame FrameRecever::ReceveVideoFrame(sockpp::tcp_socket& sock, sockpp::tcp_socket& auxSocket, char* dataBuffer)
 {
-	VideoFramePair framePair;
-	if (sock.read_n((void*)&framePair, sizeof(VideoFramePair)) == -1)
+	VideoFrame frame;
+	if (sock.read_n((void*)&frame, sizeof(VideoFrame)) == -1)
 	{
 		printf("Failed to read video frame details!\nError: %s\n", sock.last_error_str());
 	}
 
-	if (sock.read_n((void*)dataBuffer, framePair.dataSize1 + framePair.dataSize2) == -1)
+	std::future<void> promise;
+	if (!frame.isSingle)
+	{
+		promise = std::async(std::launch::async, [dataBuffer, frame, conn = std::ref(auxSocket)]()
+		{
+			if (conn.get().write_n(dataBuffer + frame.buf1, frame.buf2) != frame.buf2)
+			{
+				printf("THREAD 2: Failed to read video data!\nError: %s\n", conn.get().last_error_str().c_str());
+			}
+		});
+	}
+
+	if (sock.read_n((void*)dataBuffer, frame.buf1) == -1)
 	{
 		printf("Failed to read video data!\nError: %s\n", sock.last_error_str());
 	}
 
-	return framePair;
+	promise.get();
+
+	return frame;
 }
 
 void FrameRecever::ConfirmFrame(sockpp::tcp_socket& sock)
