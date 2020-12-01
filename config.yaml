@@ -2,7 +2,7 @@ useHardwareAccel: true
 hwDeviceName: dxva2
 srcName: banananana
 codecName: hevc
-threads: 4
+threads: 1
 videoPort: 1337
 audioPort: 1338
 xres: 1920

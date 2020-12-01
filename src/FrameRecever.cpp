@@ -1,41 +1,60 @@
 #include "FrameRecever.h"
 
-extern "C"
+void PFrameRecever::ReceveVideoFrame(sockpp::tcp_socket& sock, char* dataBuffer, VideoFrame* frame)
 {
-	#include <libavutil/common.h>
-}
+	processed = false;
 
-VideoFrame FrameRecever::ReceveVideoFrame(sockpp::tcp_socket& sock, sockpp::tcp_socket& auxSocket, char* dataBuffer)
-{
-	VideoFrame frame;
-	if (sock.read_n((void*)&frame, sizeof(VideoFrame)) == -1)
+	if (sock.read_n((void*)frame, sizeof(VideoFrame)) == -1)
 	{
 		printf("Failed to read video frame details!\nError: %s\n", sock.last_error_str());
 	}
 
-	std::future<void> promise;
-	if (!frame.isSingle)
+	if (!frame->isSingle)
 	{
-		promise = std::async(std::launch::async, [dataBuffer, frame, conn = std::ref(auxSocket)]()
+		auxDataBuffer = dataBuffer;
+		auxFrame = *frame;
+
 		{
-			if (conn.get().write_n(dataBuffer + frame.buf1, frame.buf2) != frame.buf2)
-			{
-				printf("THREAD 2: Failed to read video data!\nError: %s\n", conn.get().last_error_str().c_str());
-			}
-		});
+			std::unique_lock<std::mutex> lk(m);
+			ready = true;
+		}
+
+		cv.notify_one();
 	}
 
-	if (sock.read_n((void*)dataBuffer, frame.buf1) == -1)
+	if (sock.read_n((void*)dataBuffer, frame->buf1) == -1)
 	{
 		printf("Failed to read video data!\nError: %s\n", sock.last_error_str());
 	}
 
-	promise.get();
-
-	return frame;
+	if (!frame->isSingle)
+	{
+		std::unique_lock<std::mutex> lk(m);
+		cv.wait(lk, [this] {return processed; });
+	}
 }
 
-void FrameRecever::ConfirmFrame(sockpp::tcp_socket& sock)
+void PFrameRecever::ReceveVideoFrameAux()
+{
+	while (true)
+	{
+		std::unique_lock<std::mutex> lk(m);
+		cv.wait(lk, [this] {return ready; });
+
+		if (auxSocket->read_n((void*)(auxDataBuffer + auxFrame.buf1), auxFrame.buf2) != auxFrame.buf2)
+		{
+			printf("THREAD 2: Failed to read video data!\nError: %s\n", auxSocket->last_error_str().c_str());
+		}
+
+		processed = true;
+		ready = false;
+
+		lk.unlock();
+		cv.notify_one();
+	}
+}
+
+void PFrameRecever::ConfirmFrame(sockpp::tcp_socket& sock)
 {
 	char c = (char)7;
 
@@ -45,7 +64,19 @@ void FrameRecever::ConfirmFrame(sockpp::tcp_socket& sock)
 	}
 }
 
-std::tuple<NDIlib_audio_frame_v2_t, float*, size_t> FrameRecever::ReceveAudioFrame(sockpp::tcp_socket& sock)
+PFrameRecever::PFrameRecever(sockpp::tcp_socket* sock)
+{
+	auxSocket = sock;
+
+	//std::thread aux(&FrameRecever::ReceveVideoFrameAux, &recever, std::move(auxSocket), dataBuffer, std::ref(shouldRun), &frame);
+	std::thread aux([this] 
+		{
+			ReceveVideoFrameAux();
+		});
+	aux.detach();
+}
+
+std::tuple<NDIlib_audio_frame_v2_t, float*, size_t> PFrameRecever::ReceveAudioFrame(sockpp::tcp_socket& sock)
 {
 	AudioFrame frame;
 
@@ -56,6 +87,7 @@ std::tuple<NDIlib_audio_frame_v2_t, float*, size_t> FrameRecever::ReceveAudioFra
 
 	NDIlib_audio_frame_v2_t NDI_audio_frame;
 
+	//TODO: pass in the buffer to avoid calling malloc every frame
 	char* dataBuffer = (char*)malloc(frame.dataSize);
 
 	if (sock.read_n((void*)dataBuffer, frame.dataSize) == -1)

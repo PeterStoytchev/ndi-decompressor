@@ -5,8 +5,8 @@
 struct VideoFrame
 {
 	bool isSingle = false;
-	size_t buf1;
-	size_t buf2;
+	size_t buf1 = 0;
+	size_t buf2 = 0;
 	NDIlib_video_frame_v2_t videoFrame;
 };
 

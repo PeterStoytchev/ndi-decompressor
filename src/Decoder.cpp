@@ -129,6 +129,7 @@ std::tuple<size_t, uint8_t*> Decoder::Decode(uint8_t* compressedData, size_t siz
 
 	if (m_settings.useHardwareAceel)
 	{
+		av_frame_get_buffer(sw_frame, 16);
 		if ((ret = av_hwframe_transfer_data(sw_frame, frame, 0)))
 		{
 			printf("done goofed GPU->CPU!\n");
