@@ -24,24 +24,10 @@ extern "C"
 	#include <libavutil/common.h>
 }
 
-class PFrameRecever
+namespace FrameRecever
 {
-public:
-	PFrameRecever() {}
-	PFrameRecever(sockpp::tcp_socket* sock);
 	std::tuple<NDIlib_audio_frame_v2_t, float*, size_t> ReceveAudioFrame(sockpp::tcp_socket& sock);
 	void ReceveVideoFrame(sockpp::tcp_socket& sock, char* dataBuffer, VideoFrame* frame);
-	void ReceveVideoFrameAux();
 
 	void ConfirmFrame(sockpp::tcp_socket& sock);
-private:
-	sockpp::tcp_socket* auxSocket;
-	VideoFrame auxFrame;
-	char* auxDataBuffer;
-
-	std::mutex m;
-	std::condition_variable cv;
-	
-	bool ready = false;
-	bool processed = false;
 };

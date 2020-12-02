@@ -27,32 +27,26 @@ void SendBSFrames(VideoFrame& framePair, uint8_t* bsBuffer)
 	NDIlib_send_send_video_v2(pNDI_send, &bsFrame);
 }
 
-void VideoHandler(sockpp::tcp_socket sock, sockpp::tcp_socket auxSocket, DecoderSettings settings)
+void VideoHandler(sockpp::tcp_socket sock, DecoderSettings settings)
 {
-	PFrameRecever recever(&auxSocket);
 	uint8_t* bsBuffer = (uint8_t*)malloc(2);
 	Decoder* transcoder = new Decoder(settings);
 
 	char* dataBuffer = (char*)malloc(settings.xres * settings.yres * 2);
+	
 	VideoFrame frame;
-
 	int counter = 0;
-
-	recever.ConfirmFrame(sock);
 
 	while (!exit_loop)
 	{
 		auto startPoint = std::chrono::high_resolution_clock::now();
 
-		recever.ReceveVideoFrame(sock, dataBuffer, &frame);
-
-		//recever.ConfirmFrame(sock);
+		FrameRecever::ReceveVideoFrame(sock, dataBuffer, &frame);
 
 		std::cout << "Transfer time: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startPoint).count() << "ms\n\n";
 		startPoint = std::chrono::high_resolution_clock::now();
 
-		size_t totalSize = frame.buf1 + frame.buf2;
-		if (totalSize == 0 || totalSize == 2 || frame.isSingle)
+		if (frame.dataSize == 0 || frame.dataSize == 2)
 		{
 			SendBSFrames(frame, bsBuffer);
 
@@ -60,7 +54,7 @@ void VideoHandler(sockpp::tcp_socket sock, sockpp::tcp_socket auxSocket, Decoder
 		}
 		else
 		{
-			auto [decodedSize, decodedData] = transcoder->Decode((uint8_t*)dataBuffer, totalSize);
+			auto [decodedSize, decodedData] = transcoder->Decode((uint8_t*)dataBuffer, frame.dataSize);
 
 			if (decodedSize != 0)
 			{
@@ -78,18 +72,17 @@ void VideoHandler(sockpp::tcp_socket sock, sockpp::tcp_socket auxSocket, Decoder
 
 		std::cout << "Decoder time: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startPoint).count() << "ms\n";
 
-		recever.ConfirmFrame(sock);
+		FrameRecever::ConfirmFrame(sock);
 	}
 }
 
 void AudioHandler(sockpp::tcp_socket sock)
 {
-	PFrameRecever recv;
 	while (!exit_loop)
 	{
 		//TODO: make the data buufer be a one time thing, that way we dont have to allocate memory every frame
 
-		auto [NDI_audio_frame, data, dataSize] = recv.ReceveAudioFrame(sock);
+		auto [NDI_audio_frame, data, dataSize] = FrameRecever::ReceveAudioFrame(sock);
 
 		NDI_audio_frame.p_data = data;
 
@@ -124,10 +117,9 @@ int main(int argc, char** argv)
 	{
 		sockpp::inet_address peer;
 		sockpp::tcp_socket video_socket = acceptor_video.accept(&peer);
-		sockpp::tcp_socket video_socket2 = acceptor_video.accept(&peer);
 		sockpp::tcp_socket audio_socket = acceptor_audio.accept(&peer);
 
-		std::thread video_thread(VideoHandler, std::move(video_socket), std::move(video_socket2), settings);
+		std::thread video_thread(VideoHandler, std::move(video_socket), settings);
 		video_thread.detach();
 
 
