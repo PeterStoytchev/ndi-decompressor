@@ -31,6 +31,9 @@ Decoder::Decoder(DecoderSettings settings)
 	codecContext->height = m_settings.yres;
 	codecContext->framerate = { 1, m_settings.fps };
 	
+	codecContext->thread_count = m_settings.threads;
+	codecContext->slice_count = m_settings.threads;
+
 	pkt = av_packet_alloc();
 	returnBuffer = (uint8_t*)malloc(m_settings.xres * m_settings.yres * 2);
 
@@ -68,9 +71,6 @@ Decoder::Decoder(DecoderSettings settings)
 	{
 		codecContext->pix_fmt = AV_PIX_FMT_YUV420P;
 		
-		codecContext->thread_count = m_settings.threads;
-		codecContext->slice_count = m_settings.threads;
-
 		swsContext = sws_getContext(m_settings.xres, m_settings.yres, AV_PIX_FMT_YUV420P, m_settings.xres, m_settings.yres, AV_PIX_FMT_UYVY422, SWS_POINT | SWS_BITEXACT, 0, 0, 0);
 	}
 

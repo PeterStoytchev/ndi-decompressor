@@ -27,6 +27,7 @@ void PFrameRecever::ReceveVideoFrame(sockpp::tcp_socket& sock, char* dataBuffer,
 		printf("Failed to read video data!\nError: %s\n", sock.last_error_str());
 	}
 
+
 	if (!frame->isSingle)
 	{
 		std::unique_lock<std::mutex> lk(m);
@@ -68,7 +69,6 @@ PFrameRecever::PFrameRecever(sockpp::tcp_socket* sock)
 {
 	auxSocket = sock;
 
-	//std::thread aux(&FrameRecever::ReceveVideoFrameAux, &recever, std::move(auxSocket), dataBuffer, std::ref(shouldRun), &frame);
 	std::thread aux([this] 
 		{
 			ReceveVideoFrameAux();

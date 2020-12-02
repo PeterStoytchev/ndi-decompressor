@@ -36,9 +36,20 @@ void VideoHandler(sockpp::tcp_socket sock, sockpp::tcp_socket auxSocket, Decoder
 	char* dataBuffer = (char*)malloc(settings.xres * settings.yres * 2);
 	VideoFrame frame;
 
+	int counter = 0;
+
+	recever.ConfirmFrame(sock);
+
 	while (!exit_loop)
 	{
+		auto startPoint = std::chrono::high_resolution_clock::now();
+
 		recever.ReceveVideoFrame(sock, dataBuffer, &frame);
+
+		//recever.ConfirmFrame(sock);
+
+		std::cout << "Transfer time: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startPoint).count() << "ms\n\n";
+		startPoint = std::chrono::high_resolution_clock::now();
 
 		size_t totalSize = frame.buf1 + frame.buf2;
 		if (totalSize == 0 || totalSize == 2 || frame.isSingle)
@@ -65,11 +76,9 @@ void VideoHandler(sockpp::tcp_socket sock, sockpp::tcp_socket auxSocket, Decoder
 			}
 		}
 
+		std::cout << "Decoder time: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startPoint).count() << "ms\n";
+
 		recever.ConfirmFrame(sock);
-
-		long long time_span = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - frame.frameStart).count();
-
-		printf("Adapter time: %" PRId64 "ms\n");
 	}
 }
 
