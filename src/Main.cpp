@@ -36,8 +36,6 @@ void VideoHandler(sockpp::tcp_socket sock, sockpp::tcp_socket auxSocket, Decoder
 	char* dataBuffer = (char*)malloc(settings.xres * settings.yres * 2);
 	VideoFrame frame;
 
-	
-
 	while (!exit_loop)
 	{
 		recever.ReceveVideoFrame(sock, dataBuffer, &frame);
@@ -68,6 +66,10 @@ void VideoHandler(sockpp::tcp_socket sock, sockpp::tcp_socket auxSocket, Decoder
 		}
 
 		recever.ConfirmFrame(sock);
+
+		long long time_span = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - frame.frameStart).count();
+
+		printf("Adapter time: %" PRId64 "ms\n");
 	}
 }
 
