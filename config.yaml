@@ -10,4 +10,3 @@ yres: 1080
 fps: 60
 priv_data:
  preset: high
- rc: crf

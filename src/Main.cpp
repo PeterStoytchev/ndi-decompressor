@@ -35,7 +35,8 @@ void VideoHandler(sockpp::tcp_socket sock, DecoderSettings settings)
 	char* dataBuffer = (char*)malloc(settings.xres * settings.yres * 2);
 	
 	VideoFrame frame;
-	int counter = 0;
+
+	FrameRecever::ConfirmFrame(sock);
 
 	while (!exit_loop)
 	{
