@@ -95,13 +95,15 @@ void AudioHandler(sockpp::tcp_socket sock)
 
 int main(int argc, char** argv)
 {
-	if (argc == 0)
+	DecoderSettings settings;
+	if (argc < 2)
 	{
-		printf("No config file provided!\n");
-		return -1;
+		settings = DecoderSettings("config.yaml");
 	}
-
-	DecoderSettings settings = DecoderSettings("config.yaml");
+	else
+	{
+		settings = DecoderSettings(argv[1]);
+	}
 
 	sockpp::socket_initializer sockInit;
 	sockpp::tcp_acceptor acceptor_video(settings.videoPort);
