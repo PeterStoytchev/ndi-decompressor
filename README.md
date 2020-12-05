@@ -1,7 +1,7 @@
 # ndi-server
 The server (and for now decompressor) for my ndi-compressor project. This is what you would connect to.
 
-For now, this works only on Windows, because the NDI library is Windows only.
+For now, this only works on Windows, because the NDI library is Windows only.
 Later on, when the server is standalone, it will be cross-platform.
 
 # How to compile and install.
@@ -15,10 +15,10 @@ Later on, when the server is standalone, it will be cross-platform.
 
 # TODO
 1. Profiling support.
-2. Seperate the video processing stages (recieve, decompress and submit to NDI) onto diffirent threads, in order to reduce latency. 
+2. Seperate the video processing stages (receive, decompress and submit to NDI) onto diffirent threads, in order to reduce latency. 
 3. Cmake support.
 4. Move to x64.
 5. Build most of the dependencies with the build system, instead of including precompiled binaries (aside from NDI lib, which isn't open source).
 
 # Long-term TODO
-Decouple the server and decompressor. The idea is to have a server, hosted in the cloud (wow really?) and have it act as a amplifier of sorts for the signal it receves from an encoder. This will happen once the networking and compression/decompression work smoothly.
+Decouple the server and decompressor. The idea is to have a server, hosted in the cloud (wow really?) and have it act as an amplifier of sorts for the signal it receves from an encoder. This will happen once the networking and compression/decompression work smoothly.
