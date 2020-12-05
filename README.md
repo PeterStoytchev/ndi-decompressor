@@ -4,6 +4,8 @@ The server (and for now decompressor) for my ndi-compressor project. This is wha
 For now, this only works on Windows, because the NDI library is Windows only.
 Later on, when the server is standalone, it will be cross-platform.
 
+For now, run this on the device you would like to receive the NDI stream on. Once it starts receiving a signal, from a ndi-compressor, it will create a NDI source from it, with the name specified in the config. 
+
 # How to compile and install.
 1. Clone the repo.
 2. Open in Visual Studio (developed on VS2019, it will probably work on older versions, as long as C++17 is supported)
