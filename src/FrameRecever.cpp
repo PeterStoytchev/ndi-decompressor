@@ -1,7 +1,10 @@
 #include "FrameRecever.h"
 
+#include "Instrumentor.h"
+
 void FrameRecever::ReceveVideoFrame(sockpp::tcp_socket& sock, char* dataBuffer, VideoFrame* frame)
 {
+	PROFILE("ReceveVideoFrame");
 	if (sock.read_n((void*)frame, sizeof(VideoFrame)) == -1)
 	{
 		printf("Failed to read video frame details!\nError: %s\n", sock.last_error_str());
@@ -15,6 +18,8 @@ void FrameRecever::ReceveVideoFrame(sockpp::tcp_socket& sock, char* dataBuffer, 
 
 void FrameRecever::ConfirmFrame(sockpp::tcp_socket& sock)
 {
+	PROFILE("ConfirmFrame");
+	
 	char c = (char)7;
 
 	if (sock.write_n(&c, sizeof(c)) != sizeof(c))

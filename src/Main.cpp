@@ -1,6 +1,7 @@
 #include <iostream>
 #include <thread>
 #include <atomic>
+#include <csignal>
 
 #include "sockpp/tcp_acceptor.h"
 #include "sockpp/version.h"
@@ -8,6 +9,7 @@
 #include "Decoder.h"
 #include "FrameRecever.h"
 
+#include "Instrumentor.h"
 
 NDIlib_send_instance_t pNDI_send;
 
@@ -19,6 +21,8 @@ static void sigint_handler(int)
 
 void SendBSFrames(VideoFrame& framePair, uint8_t* bsBuffer)
 {
+	PROFILE("SendBSFrame");
+
 	NDIlib_video_frame_v2_t bsFrame = NDIlib_video_frame_v2_t(1, 1);
 	bsFrame.timecode = framePair.videoFrame.timecode;
 	bsFrame.timestamp = framePair.videoFrame.timestamp;
@@ -40,12 +44,9 @@ void VideoHandler(sockpp::tcp_socket sock, DecoderSettings settings)
 
 	while (!exit_loop)
 	{
-		auto startPoint = std::chrono::high_resolution_clock::now();
+		PROFILE("VideoHandler");
 
 		FrameRecever::ReceveVideoFrame(sock, dataBuffer, &frame);
-
-		std::cout << "Transfer time: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startPoint).count() << "ms\n\n";
-		startPoint = std::chrono::high_resolution_clock::now();
 
 		if (frame.dataSize == 0 || frame.dataSize == 2)
 		{
@@ -71,8 +72,6 @@ void VideoHandler(sockpp::tcp_socket sock, DecoderSettings settings)
 			}
 		}
 
-		std::cout << "Decoder time: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startPoint).count() << "ms\n";
-
 		FrameRecever::ConfirmFrame(sock);
 	}
 }
@@ -82,7 +81,6 @@ void AudioHandler(sockpp::tcp_socket sock)
 	while (!exit_loop)
 	{
 		//TODO: make the data buufer be a one time thing, that way we dont have to allocate memory every frame
-
 		auto [NDI_audio_frame, data, dataSize] = FrameRecever::ReceveAudioFrame(sock);
 
 		NDI_audio_frame.p_data = data;
@@ -95,6 +93,8 @@ void AudioHandler(sockpp::tcp_socket sock)
 
 int main(int argc, char** argv)
 {
+	signal(SIGINT, sigint_handler);
+
 	DecoderSettings settings;
 	if (argc < 2)
 	{
@@ -116,7 +116,9 @@ int main(int argc, char** argv)
 	NDI_send_create_desc.p_ndi_name = settings.srcName.c_str();
 	pNDI_send = NDIlib_send_create(&NDI_send_create_desc);
 
-	while (true) 
+	CREATE_PROFILER("ndi-server");
+
+	while (!exit_loop) 
 	{
 		sockpp::inet_address peer;
 		sockpp::tcp_socket video_socket = acceptor_video.accept(&peer);
@@ -129,4 +131,6 @@ int main(int argc, char** argv)
 		std::thread audio_thread(AudioHandler, std::move(audio_socket));
 		audio_thread.detach();
 	}
+
+	DESTROY_PROFILER();
 }
