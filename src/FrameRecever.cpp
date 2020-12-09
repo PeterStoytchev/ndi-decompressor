@@ -2,15 +2,16 @@
 
 #include "Instrumentor.h"
 
-void FrameRecever::ReceveVideoFrame(sockpp::tcp_socket& sock, char* dataBuffer, VideoFrame* frame)
+void FrameRecever::ReceveVideoFrame(sockpp::tcp_socket& sock, VideoFrame* frame)
 {
-	
-	if (sock.read_n((void*)frame, sizeof(VideoFrame)) == -1)
+	if (sock.read_n((void*)&frame, sizeof(VideoFrame)) == -1)
 	{
 		printf("Failed to read video frame details!\nError: %s\n", sock.last_error_str());
 	}
 
-	if (sock.read_n((void*)dataBuffer, frame->dataSize) == -1)
+	frame->data = (uint8_t*)malloc(frame->dataSize);
+
+	if (sock.read_n((void*)frame->data, frame->dataSize) == -1)
 	{
 		printf("Failed to read video data!\nError: %s\n", sock.last_error_str());
 	}
