@@ -44,9 +44,9 @@ void VideoHandler(sockpp::tcp_socket sock, DecoderSettings settings)
 
 	while (!exit_loop)
 	{
-		PROFILE("VideoHandler");
+		//PROFILE("VideoHandler");
 
-		FrameRecever::ReceveVideoFrame(sock, dataBuffer, &frame);
+		SCOPED_PROFILE("ReceveVideoFrame", FrameRecever::ReceveVideoFrame(sock, dataBuffer, &frame);)
 
 		if (frame.dataSize == 0 || frame.dataSize == 2)
 		{
@@ -60,9 +60,11 @@ void VideoHandler(sockpp::tcp_socket sock, DecoderSettings settings)
 
 			if (decodedSize != 0)
 			{
-				frame.videoFrame.p_data = decodedData;
-
-				NDIlib_send_send_video_v2(pNDI_send, &(frame.videoFrame));
+				SCOPED_PROFILE("NDI-submit", 
+					frame.videoFrame.p_data = decodedData;
+					NDIlib_send_send_video_v2(pNDI_send, &(frame.videoFrame));
+				);
+				
 			}
 			else
 			{

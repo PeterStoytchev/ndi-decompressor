@@ -6,6 +6,8 @@
 bin-init/
 bin/
 
+*.json
+
 # User-specific files
 *.rsuser
 *.suo
