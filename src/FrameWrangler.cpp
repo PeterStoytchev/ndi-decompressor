@@ -44,8 +44,6 @@ void FrameWrangler::HandleFrameReceive()
 		VideoFrame frame;
 		FrameRecever::ReceveVideoFrame(video_socket, &frame);
 
-		//FrameRecever::ConfirmFrame(video_socket);
-
 		std::lock_guard<std::mutex> guard(m_receiveMutex);
 		m_ReceiveQueue.push(frame);
 	}
@@ -62,32 +60,20 @@ void FrameWrangler::HandleFrameDecode()
 			m_ReceiveQueue.pop();
 			m_receiveMutex.unlock();
 
-			if (frame.dataSize == 0 || frame.dataSize == 2)
+			auto [decodedSize, decodedData] = m_decoder->Decode(frame.data, frame.dataSize);
+			free(frame.data);
+
+			std::lock_guard<std::mutex> guard(m_submitMutex);
+			if (decodedSize != 0)
 			{
-				free(frame.data);
-
-				std::lock_guard<std::mutex> guard(m_submitMutex);
-				SubmitBSFrame(frame);
-
-				printf("Buffering, sending empty!\n");
+				frame.videoFrame.p_data = decodedData;
+				m_SubmitQueue.push(frame.videoFrame);
 			}
 			else
 			{
-				auto [decodedSize, decodedData] = m_decoder->Decode(frame.data, frame.dataSize);
-				free(frame.data);
+				SubmitBSFrame(frame);
 
-				std::lock_guard<std::mutex> guard(m_submitMutex);
-				if (decodedSize != 0)
-				{
-					frame.videoFrame.p_data = decodedData;
-					m_SubmitQueue.push(frame.videoFrame);
-				}
-				else
-				{
-					SubmitBSFrame(frame);
-
-					printf("Decoder is still buffering, sending empty!\n");
-				}
+				printf("Decoder is still buffering, sending empty!\n");
 			}
 		}
 		else
@@ -106,6 +92,7 @@ void FrameWrangler::HandleFrameSubmit()
 		{
 			auto frame = m_SubmitQueue.front();
 			m_SubmitQueue.pop();
+
 			m_submitMutex.unlock();
 
 			NDIlib_send_send_video_v2(*pNDI_send, &frame);
