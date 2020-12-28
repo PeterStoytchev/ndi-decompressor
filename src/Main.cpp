@@ -10,8 +10,6 @@
 #include "FrameRecever.h"
 #include "FrameWrangler.h"
 
-#include "Instrumentor.h"
-
 FrameWrangler* wrangler;
 NDIlib_send_instance_t pNDI_send;
 
@@ -59,8 +57,6 @@ int main(int argc, char** argv)
 	NDI_send_create_desc.p_ndi_name = settings.srcName.c_str();
 	pNDI_send = NDIlib_send_create(&NDI_send_create_desc);
 
-	CREATE_PROFILER("ndi-server");
-
 	sockpp::inet_address peer;
 
 	printf("Video wating on port: %d\n", settings.videoPort);
@@ -72,6 +68,4 @@ int main(int argc, char** argv)
 	AudioHandler(std::move(audio_socket));
 
 	delete wrangler;
-
-	DESTROY_PROFILER();
 }

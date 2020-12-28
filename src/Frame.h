@@ -13,6 +13,7 @@ struct VideoFrame
 	size_t dataSize = 0;
 	uint8_t* data;
 	NDIlib_video_frame_v2_t videoFrame;
+	int64_t id = rand();
 };
 
 struct AudioFrame

@@ -2,8 +2,6 @@
 
 #include <assert.h>
 
-#include "Instrumentor.h"
-
 static enum AVPixelFormat hw_pix_fmt;
 
 static enum AVPixelFormat get_hw_format(AVCodecContext* ctx, const enum AVPixelFormat* pix_fmts)
@@ -91,83 +89,72 @@ Decoder::Decoder(DecoderSettings settings)
 
 std::tuple<size_t, uint8_t*> Decoder::Decode(uint8_t* compressedData, size_t size)
 {
-	PROFILE("DecodeFrame");
+	if (!(frame = av_frame_alloc()) || !(sw_frame = av_frame_alloc()))
+	{
+		printf("Done goofed allocating frames\n");
+		assert(0);
+	}
 
-	SCOPED_PROFILE("allocandsetup", 
-		if (!(frame = av_frame_alloc()) || !(sw_frame = av_frame_alloc()))
-		{
-			printf("Done goofed allocating frames\n");
-			assert(0);
-		}
+	pkt->data = compressedData;
+	pkt->size = size;
 
-		pkt->data = compressedData;
-		pkt->size = size;
-
-		frame->pts = i;
-	)
+	frame->pts = i;
 
 
-	SCOPED_PROFILE("avcodec_send_packet", 
-		if ((ret = avcodec_send_packet(codecContext, pkt)) < 0)
-		{
-			LOG_ERR(ret);
+	if ((ret = avcodec_send_packet(codecContext, pkt)) < 0)
+	{
+		LOG_ERR(ret);
 
-			printf("Could not send_frame!\n");
-			assert(0);
-		}
-	)
+		printf("Could not send_frame!\n");
+		assert(0);
+	}
 
 
-	SCOPED_PROFILE("avcodec_receive_frame",
-		ret = avcodec_receive_frame(codecContext, frame);
-		if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
-		{
-			printf("Buffering frame... send empty!\n");
-			av_frame_free(&frame);
-			av_frame_free(&sw_frame);
-			return std::make_tuple(0, nullptr);
-		}
-		else if (ret < 0)
-		{
-			LOG_ERR(ret);
-
-			printf("Could not receive_packet!\n");
-			assert(0);
-		}
-	)
-
-	
-	SCOPED_PROFILE("sws_processing", 
-		uint8_t * outData[1] = { returnBuffer };
-		int outLinesize[1] = { m_settings.xres * 2 };
-
-		if (m_settings.useHardwareAceel)
-		{
-			av_frame_get_buffer(sw_frame, 16);
-			if ((ret = av_hwframe_transfer_data(sw_frame, frame, 0)))
-			{
-				printf("done goofed GPU->CPU!\n");
-				assert(0);
-			}
-
-			uint8_t* data[2] = { sw_frame->data[0], sw_frame->data[1] };
-			int linesize[2] = { m_settings.xres, m_settings.xres };
-
-			sws_scale(swsContext, data, linesize, 0, m_settings.yres, outData, outLinesize);
-		}
-		else
-		{
-			uint8_t* data[3] = { frame->data[0], frame->data[1], frame->data[2] };
-			int linesize[3] = { m_settings.xres, m_settings.xres / 2, m_settings.xres / 2 };
-
-			sws_scale(swsContext, data, linesize, 0, m_settings.yres, outData, outLinesize);
-		}
-
-		i++;
-
+	ret = avcodec_receive_frame(codecContext, frame);
+	if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+	{
+		printf("Buffering frame... send empty!\n");
 		av_frame_free(&frame);
 		av_frame_free(&sw_frame);
-	)
+		return std::make_tuple(0, nullptr);
+	}
+	else if (ret < 0)
+	{
+		LOG_ERR(ret);
+
+		printf("Could not receive_packet!\n");
+		assert(0);
+	}
+
+	uint8_t* outData[1] = { returnBuffer };
+	int outLinesize[1] = { m_settings.xres * 2 };
+
+	if (m_settings.useHardwareAceel)
+	{
+		av_frame_get_buffer(sw_frame, 16);
+		if ((ret = av_hwframe_transfer_data(sw_frame, frame, 0)))
+		{
+			printf("done goofed GPU->CPU!\n");
+			assert(0);
+		}
+
+		uint8_t* data[2] = { sw_frame->data[0], sw_frame->data[1] };
+		int linesize[2] = { m_settings.xres, m_settings.xres };
+
+		sws_scale(swsContext, data, linesize, 0, m_settings.yres, outData, outLinesize);
+	}
+	else
+	{
+		uint8_t* data[3] = { frame->data[0], frame->data[1], frame->data[2] };
+		int linesize[3] = { m_settings.xres, m_settings.xres / 2, m_settings.xres / 2 };
+
+		sws_scale(swsContext, data, linesize, 0, m_settings.yres, outData, outLinesize);
+	}
+
+	i++;
+
+	av_frame_free(&frame);
+	av_frame_free(&sw_frame);
 
 	return std::make_tuple(m_settings.xres * m_settings.yres * 2, returnBuffer);
 }

@@ -1,7 +1,5 @@
 #include "FrameRecever.h"
 
-#include "Instrumentor.h"
-
 void FrameRecever::ReceveVideoFrame(sockpp::tcp_socket& sock, VideoFrame* frame)
 {
 	if (sock.read_n((void*)frame, sizeof(VideoFrame)) == -1)
@@ -19,8 +17,6 @@ void FrameRecever::ReceveVideoFrame(sockpp::tcp_socket& sock, VideoFrame* frame)
 
 void FrameRecever::ConfirmFrame(sockpp::tcp_socket& sock)
 {
-	PROFILE("ConfirmFrame");
-	
 	char c = (char)7;
 
 	if (sock.write_n(&c, sizeof(c)) != sizeof(c))
