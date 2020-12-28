@@ -65,7 +65,9 @@ int main(int argc, char** argv)
 	wrangler = new FrameWrangler(settings, acceptor_video, &pNDI_send);
 
 	sockpp::tcp_socket audio_socket = acceptor_audio.accept(&peer);
-	AudioHandler(std::move(audio_socket));
+	
+	std::thread audioThread(AudioHandler, std::move(audio_socket));
+	audioThread.join();
 
 	delete wrangler;
 }
