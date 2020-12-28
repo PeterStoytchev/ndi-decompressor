@@ -43,7 +43,8 @@ void FrameWrangler::HandleFrameReceive()
 	{
 		VideoFrame frame;
 		FrameRecever::ReceveVideoFrame(video_socket, &frame);
-		FrameRecever::ConfirmFrame(video_socket);
+
+		//FrameRecever::ConfirmFrame(video_socket);
 
 		std::lock_guard<std::mutex> guard(m_receiveMutex);
 		m_ReceiveQueue.push(frame);
@@ -108,6 +109,10 @@ void FrameWrangler::HandleFrameSubmit()
 			m_submitMutex.unlock();
 
 			NDIlib_send_send_video_v2(*pNDI_send, &frame);
+		}
+		else
+		{
+			m_submitMutex.unlock();
 		}
 	}
 

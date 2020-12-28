@@ -7,7 +7,6 @@
 
 #include "Processing.NDI.Lib.h"
 
-#include "Frame.h"
 #include "Decoder.h"
 #include "FrameRecever.h"
 
