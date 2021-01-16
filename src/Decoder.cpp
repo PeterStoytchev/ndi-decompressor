@@ -31,8 +31,11 @@ Decoder::Decoder(DecoderSettings settings)
 	codecContext->height = m_settings.yres;
 	codecContext->framerate = { 1, m_settings.fps };
 	
-	codecContext->thread_count = m_settings.threads;
-	codecContext->slice_count = m_settings.threads;
+	if (m_settings.threads != 1)
+	{
+		codecContext->thread_count = m_settings.threads;
+		codecContext->slice_count = m_settings.threads;
+	}
 
 	pkt = av_packet_alloc();
 	returnBuffer = (uint8_t*)malloc(m_settings.xres * m_settings.yres * 2);
@@ -131,7 +134,6 @@ std::tuple<size_t, uint8_t*> Decoder::Decode(uint8_t* compressedData, size_t siz
 
 	if (m_settings.useHardwareAceel)
 	{
-		av_frame_get_buffer(sw_frame, 16);
 		if ((ret = av_hwframe_transfer_data(sw_frame, frame, 0)))
 		{
 			printf("done goofed GPU->CPU!\n");

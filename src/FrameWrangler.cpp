@@ -60,8 +60,8 @@ void FrameWrangler::HandleFrameDecode()
 			m_ReceiveQueue.pop();
 			m_receiveMutex.unlock();
 
-			auto [decodedSize, decodedData] = m_decoder->Decode(frame.data, frame.dataSize);
-			free(frame.data);
+			auto [decodedSize, decodedData] = m_decoder->Decode(frame.videoFrame.p_data, frame.dataSize);
+			free(frame.videoFrame.p_data);
 
 			std::lock_guard<std::mutex> guard(m_submitMutex);
 			if (decodedSize != 0)
@@ -72,8 +72,6 @@ void FrameWrangler::HandleFrameDecode()
 			else
 			{
 				SubmitBSFrame(frame);
-
-				printf("Decoder is still buffering, sending empty!\n");
 			}
 		}
 		else

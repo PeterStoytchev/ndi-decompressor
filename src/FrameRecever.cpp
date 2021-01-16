@@ -7,9 +7,9 @@ void FrameRecever::ReceveVideoFrame(sockpp::tcp_socket& sock, VideoFrame* frame)
 		printf("Failed to read video frame details!\nError: %s\n", sock.last_error_str());
 	}
 
-	frame->data = (uint8_t*)malloc(frame->dataSize);
+	frame->videoFrame.p_data = (uint8_t*)malloc(frame->dataSize);
 
-	if (sock.read_n((void*)frame->data, frame->dataSize) == -1)
+	if (sock.read_n((void*)frame->videoFrame.p_data, frame->dataSize) == -1)
 	{
 		printf("Failed to read video data!\nError: %s\n", sock.last_error_str());
 	}

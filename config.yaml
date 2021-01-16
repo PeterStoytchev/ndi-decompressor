@@ -1,8 +1,8 @@
-useHardwareAccel: false
+useHardwareAccel: true
 hwDeviceName: dxva2
 srcName: banananana
 codecName: h264
-threads: 16
+threads: 1
 videoPort: 1337
 audioPort: 1338
 xres: 1920
