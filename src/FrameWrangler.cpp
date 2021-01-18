@@ -14,17 +14,11 @@ FrameWrangler::FrameWrangler(DecoderSettings decSettings, sockpp::tcp_acceptor& 
 		HandleFrameReceive();
 	});
 	frameReceiver.detach();
-
-	frameDecoder = std::thread([this] {
-		HandleFrameDecode();
-	});
-	frameDecoder.detach();
 }
 
 FrameWrangler::~FrameWrangler()
 {
 	frameReceiver.join();
-	frameDecoder.join();
 }
 
 void FrameWrangler::Stop()
@@ -42,54 +36,16 @@ void FrameWrangler::HandleFrameReceive()
 		VideoFrame frame;
 		FrameRecever::ReceveVideoFrame(video_socket, &frame);
 
-		std::lock_guard<std::mutex> guard(m_receiveMutex);
-		m_ReceiveQueue.push_back(frame);
+		auto [decodedSize, decodedData] = m_decoder->Decode(frame.videoFrame.p_data, frame.dataSize);
+		free(frame.videoFrame.p_data);
 
-		/*
-		if (m_ReceiveQueue.size() > 1)
+		if (decodedSize != 0)
 		{
-			printf("[HandleFrameReceive] more than one frame in m_RecieveQueue (%i)\n", m_ReceiveQueue.size());
-		}
-		*/
-	}
-}
-
-void FrameWrangler::HandleFrameDecode()
-{
-	OPTICK_THREAD("HandleFrameDecode");
-
-	std::vector<VideoFrame> localFrames;
-	localFrames.reserve(60);
-
-	while (!m_exit)
-	{
-		m_receiveMutex.lock();
-		if (!m_ReceiveQueue.empty())
-		{
-			OPTICK_EVENT();
-
-			for (VideoFrame frame : m_ReceiveQueue)
-			{
-				auto [decodedSize, decodedData] = m_decoder->Decode(frame.videoFrame.p_data, frame.dataSize);
-				free(frame.videoFrame.p_data);
-
-				if (decodedSize != 0)
-				{
-					frame.videoFrame.p_data = decodedData;
-					//std::cout << "submiting frame: " << frame.videoFrame.timestamp << "\n";
-					NDIlib_send_send_video_async_v2(*pNDI_send, &(frame.videoFrame));
-				}
-			}
-
-			m_receiveMutex.unlock();
-			FrameRecever::ConfirmFrame(video_socket);
-		}
-		else
-		{
-			m_receiveMutex.unlock();
-			FrameRecever::ConfirmFrame(video_socket);
+			frame.videoFrame.p_data = decodedData;
+			NDIlib_send_send_video_async_v2(*pNDI_send, &(frame.videoFrame));
 		}
 
+		FrameRecever::ConfirmFrame(video_socket);
 
 	}
 }

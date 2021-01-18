@@ -20,27 +20,12 @@ public:
 	void Stop();
 
 	void HandleFrameReceive();
-	void HandleFrameDecode();
-	void HandleFrameSubmit();
-
-	void SubmitBSFrame(VideoFrame& frame);
-
 private:
 	Decoder* m_decoder;
-
-	std::thread frameReceiver;
-	std::thread frameDecoder;
-	
-	std::vector<VideoFrame> m_ReceiveQueue;
-
-	std::mutex m_receiveMutex;
-
-	sockpp::tcp_socket video_socket;
-
-	std::atomic<bool> m_exit = false;
-
-	uint8_t* bsBuffer = (uint8_t*)malloc(2);
-
 	NDIlib_send_instance_t* pNDI_send;
 
+	std::thread frameReceiver;
+	std::atomic<bool> m_exit = false;
+
+	sockpp::tcp_socket video_socket;
 };
