@@ -1,4 +1,5 @@
 #include "FrameWrangler.h"
+#include "optik/optick.h"
 
 FrameWrangler::FrameWrangler(DecoderSettings decSettings, sockpp::tcp_acceptor& acceptor_video, NDIlib_send_instance_t* pNDI_send)
 {
@@ -41,6 +42,7 @@ void FrameWrangler::HandleFrameReceive()
 {
 	while (!m_exit)
 	{
+		OPTICK_FRAME("HandleFrameReceive");
 		VideoFrame frame;
 		FrameRecever::ReceveVideoFrame(video_socket, &frame);
 
@@ -56,11 +58,13 @@ void FrameWrangler::HandleFrameReceive()
 
 void FrameWrangler::HandleFrameDecode()
 {
+	OPTICK_THREAD("HandleFrameDecode");
 	while (!m_exit)
 	{
 		m_receiveMutex.lock();
 		if (!m_ReceiveQueue.empty())
 		{
+			OPTICK_EVENT();
 			auto frame = m_ReceiveQueue.front();
 			m_ReceiveQueue.pop();
 			m_receiveMutex.unlock();
@@ -93,6 +97,8 @@ void FrameWrangler::HandleFrameDecode()
 
 void FrameWrangler::HandleFrameSubmit()
 {
+	OPTICK_THREAD("HandleFrameSubmit");
+
 	std::vector<NDIlib_video_frame_v2_t> localFrames;
 	localFrames.reserve(60);
 
@@ -101,6 +107,8 @@ void FrameWrangler::HandleFrameSubmit()
 		m_submitMutex.lock();
 		if (!m_SubmitQueue.empty())
 		{
+			OPTICK_EVENT();
+
 			for (int i = 0; i < m_SubmitQueue.size(); i++)
 			{
 				localFrames.push_back(m_SubmitQueue.front());
