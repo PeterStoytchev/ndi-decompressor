@@ -46,6 +46,11 @@ void FrameWrangler::HandleFrameReceive()
 
 		std::lock_guard<std::mutex> guard(m_receiveMutex);
 		m_ReceiveQueue.push(frame);
+
+		if (m_ReceiveQueue.size() > 1)
+		{
+			printf("[HandleFrameReceive] more than one frame in m_RecieveQueue (%i)\n", m_ReceiveQueue.size());
+		}
 	}
 }
 
@@ -68,6 +73,11 @@ void FrameWrangler::HandleFrameDecode()
 			{
 				frame.videoFrame.p_data = decodedData;
 				m_SubmitQueue.push(frame.videoFrame);
+
+				if (m_SubmitQueue.size() > 1)
+				{
+					printf("[HandleFrameDecode] more than one frame in m_SubmitQueue (%i)\n", m_SubmitQueue.size());
+				}
 			}
 			else
 			{
@@ -83,17 +93,27 @@ void FrameWrangler::HandleFrameDecode()
 
 void FrameWrangler::HandleFrameSubmit()
 {
+	std::vector<NDIlib_video_frame_v2_t> localFrames;
+	localFrames.reserve(60);
+
 	while (!m_exit)
 	{
 		m_submitMutex.lock();
 		if (!m_SubmitQueue.empty())
 		{
-			auto frame = m_SubmitQueue.front();
-			m_SubmitQueue.pop();
-
+			for (int i = 0; i < m_SubmitQueue.size(); i++)
+			{
+				localFrames.push_back(m_SubmitQueue.front());
+				m_SubmitQueue.pop();
+			}
 			m_submitMutex.unlock();
 
-			NDIlib_send_send_video_v2(*pNDI_send, &frame);
+			for (NDIlib_video_frame_v2_t frame : localFrames)
+			{
+				NDIlib_send_send_video_async_v2(*pNDI_send, &frame);
+			}
+
+			localFrames.clear();
 		}
 		else
 		{
