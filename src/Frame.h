@@ -6,7 +6,7 @@ struct VideoFrame
 {
 	size_t dataSize = 0;
 	AVPacket* encodedDataPacket;
-	NDIlib_video_frame_v2_t videoFrame;
+	NDIlib_video_frame_v2_t videoFrame = NDIlib_video_frame_v2_t();
 };
 
 struct AudioFrame

@@ -30,13 +30,10 @@ private:
 
 	std::thread frameReceiver;
 	std::thread frameDecoder;
-	std::thread frameSubmitter;
 	
-	std::queue<VideoFrame> m_ReceiveQueue;
-	std::queue<NDIlib_video_frame_v2_t> m_SubmitQueue;
+	std::vector<VideoFrame> m_ReceiveQueue;
 
 	std::mutex m_receiveMutex;
-	std::mutex m_submitMutex;
 
 	sockpp::tcp_socket video_socket;
 
