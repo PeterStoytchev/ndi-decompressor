@@ -1,5 +1,7 @@
 #include "Decoder.h"
 
+#include "Profiler.h"
+
 #include <assert.h>
 
 static enum AVPixelFormat hw_pix_fmt;
@@ -92,6 +94,7 @@ Decoder::Decoder(DecoderSettings settings)
 
 std::tuple<size_t, uint8_t*> Decoder::Decode(uint8_t* compressedData, size_t size)
 {
+	PROFILE_FUNC();
 	if (!(frame = av_frame_alloc()) || !(sw_frame = av_frame_alloc()))
 	{
 		printf("Done goofed allocating frames\n");

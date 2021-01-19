@@ -19,12 +19,12 @@ public:
 
 	void Stop();
 
-	void HandleFrameReceive();
+	void Main();
 private:
 	Decoder* m_decoder;
 	NDIlib_send_instance_t* pNDI_send;
 
-	std::thread frameReceiver;
+	std::thread mainHandler;
 	std::atomic<bool> m_exit = false;
 
 	sockpp::tcp_socket video_socket;

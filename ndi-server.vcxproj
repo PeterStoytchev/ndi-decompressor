@@ -211,6 +211,7 @@
     <ClInclude Include="src\optik\optick_miniz.h" />
     <ClInclude Include="src\optik\optick_serialization.h" />
     <ClInclude Include="src\optik\optick_server.h" />
+    <ClInclude Include="src\Profiler.h" />
     <ClInclude Include="src\utils.h" />
     <ClInclude Include="vendor\include\sockpp\acceptor.h" />
     <ClInclude Include="vendor\include\sockpp\connector.h" />

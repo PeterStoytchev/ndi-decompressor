@@ -1,5 +1,5 @@
 #include "FrameWrangler.h"
-#include "optik/optick.h"
+#include "Profiler.h"
 
 FrameWrangler::FrameWrangler(DecoderSettings decSettings, sockpp::tcp_acceptor& acceptor_video, NDIlib_send_instance_t* pNDI_send)
 {
@@ -10,15 +10,15 @@ FrameWrangler::FrameWrangler(DecoderSettings decSettings, sockpp::tcp_acceptor& 
 
 	this->pNDI_send = pNDI_send;
 
-	frameReceiver = std::thread([this] {
-		HandleFrameReceive();
+	mainHandler = std::thread([this] {
+		Main();
 	});
-	frameReceiver.detach();
+	mainHandler.detach();
 }
 
 FrameWrangler::~FrameWrangler()
 {
-	frameReceiver.join();
+	mainHandler.join();
 }
 
 void FrameWrangler::Stop()
@@ -26,13 +26,13 @@ void FrameWrangler::Stop()
 	m_exit = true;
 }
 
-void FrameWrangler::HandleFrameReceive()
+void FrameWrangler::Main()
 {
 	FrameRecever::ConfirmFrame(video_socket);
 	while (!m_exit)
 	{
-		OPTICK_FRAME("HandleFrameReceive");
-		
+		PROFILE_FRAME("MainLoop");
+
 		VideoFrame frame;
 		FrameRecever::ReceveVideoFrame(video_socket, &frame);
 
@@ -46,7 +46,5 @@ void FrameWrangler::HandleFrameReceive()
 			frame.videoFrame.p_data = decodedData;
 			NDIlib_send_send_video_async_v2(*pNDI_send, &(frame.videoFrame));
 		}
-
-
 	}
 }
