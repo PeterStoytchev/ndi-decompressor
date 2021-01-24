@@ -37,14 +37,17 @@ void FrameWrangler::Main()
 		FrameRecever::ReceveVideoFrame(video_socket, &frame);
 
 		FrameRecever::ConfirmFrame(video_socket);
-		
+
 		auto [decodedSize, decodedData] = m_decoder->Decode(frame.videoFrame.p_data, frame.dataSize);
 		free(frame.videoFrame.p_data);
 
 		if (decodedSize != 0)
 		{
+			OPTICK_EVENT("SendVideoAsync");
 			frame.videoFrame.p_data = decodedData;
 			NDIlib_send_send_video_async_v2(*pNDI_send, &(frame.videoFrame));
+		
 		}
+
 	}
 }
