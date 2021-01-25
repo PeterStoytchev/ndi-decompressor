@@ -1,19 +1,21 @@
 #include "FrameRecever.h"
 #include "Profiler.h"
 
-void FrameRecever::ReceveVideoFrame(sockpp::tcp_socket& sock, VideoFrame* frame)
+void FrameRecever::ReceveVideoPkt(sockpp::tcp_socket& sock, VideoPkt* frame)
 {
 	PROFILE_FUNC();
-	if (sock.read_n((void*)frame, sizeof(VideoFrame)) == -1)
+
+	size_t dataSize = 0;
+	if (sock.read_n((void*)&frame, sizeof(size_t)) == -1)
 	{
-		printf("Failed to read video frame details!\nError: %s\n", sock.last_error_str());
+		printf("Failed to read video packet size!\nError: %s\n", sock.last_error_str());
 	}
 
-	frame->videoFrame.p_data = (uint8_t*)malloc(frame->dataSize);
+	frame->data = (uint8_t*)malloc(dataSize);
 
-	if (sock.read_n((void*)frame->videoFrame.p_data, frame->dataSize) == -1)
+	if (sock.read_n((void*)frame->data, dataSize) == -1)
 	{
-		printf("Failed to read video data!\nError: %s\n", sock.last_error_str());
+		printf("Failed to read video packet data!\nError: %s\n", sock.last_error_str());
 	}
 }
 
