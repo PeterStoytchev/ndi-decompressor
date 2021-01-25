@@ -14,6 +14,11 @@ FrameWrangler::FrameWrangler(DecoderSettings decSettings, sockpp::tcp_acceptor& 
 		Main();
 	});
 	mainHandler.detach();
+
+	receverHandler = std::thread([this] {
+		Recever();
+	});
+	receverHandler.detach();
 }
 
 FrameWrangler::~FrameWrangler()
@@ -31,30 +36,59 @@ void FrameWrangler::Main()
 	FrameRecever::ConfirmFrame(video_socket);
 	while (!m_exit)
 	{
-		PROFILE_FRAME("MainLoop");
-
-		VideoPkt frame;
-		uint8_t* data = FrameRecever::ReceveVideoPkt(video_socket, &frame);
-
-		size_t processedData = 0;
-		for (int i = 0; i < 30; i++)
+		if (isReady)
 		{
-			auto [decodedSize, decodedData] = m_decoder->Decode(data + processedData, frame.frameSizes[i]);
-			processedData += frame.frameSizes[i];
+			PROFILE_FRAME("MainLoop");
+			
+			swapMutex.lock();
 
-			if (decodedSize != 0)
+			for (int i = 0; i < 30; i++)
 			{
-				PROFILE_FUNC("SendVideoAsync");
+				auto [decodedSize, decodedData] = m_decoder->Decode(pktFront->encodedDataPackets[i], pktFront->frameSizes[i]);
 
-				frame.videoFrames[i].p_data = decodedData;
-				NDIlib_send_send_video_async_v2(*pNDI_send, &(frame.videoFrames[i]));
+				if (decodedSize != 0)
+				{
+					PROFILE_FUNC("SendVideoAsync");
+
+					pktFront->videoFrames[i].p_data = decodedData;
+					NDIlib_send_send_video_async_v2(*pNDI_send, &(pktFront->videoFrames[i]));
+				}
+
+				if (i == 25)
+				{
+					isReady = false;
+				}
+
 			}
 
-		}
-
-		NDIlib_send_send_video_async_v2(*pNDI_send, &NDIlib_video_frame_v2_t()); //this is a sync event so that we can free the array of recieved frames
-		free(data);
+			auto bsFrame = NDIlib_video_frame_v2_t();
+			NDIlib_send_send_video_async_v2(*pNDI_send, &bsFrame); //this is a sync event so that we can free the array of recieved frames
 		
-		FrameRecever::ConfirmFrame(video_socket);
+			free(pktFront->encodedDataPackets[0]);
+			swapMutex.unlock();
+		}
+	}
+}
+
+void FrameWrangler::Recever()
+{
+	while (!m_exit)
+	{
+		//TODO: use condition variable to avoid spinlocking and wasting cycles
+		if (!isReady)
+		{
+			FrameRecever::ConfirmFrame(video_socket);
+			FrameRecever::ReceveVideoPkt(video_socket, pktBack);
+
+			swapMutex.lock();
+			
+			//swap the pointers
+			VideoPkt* tmp = pktFront;
+			pktFront = pktBack;
+			pktBack = tmp;
+
+			isReady = true;
+			swapMutex.unlock();
+		}
 	}
 }
