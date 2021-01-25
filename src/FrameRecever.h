@@ -27,7 +27,7 @@ extern "C"
 namespace FrameRecever
 {
 	std::tuple<NDIlib_audio_frame_v2_t, float*, size_t> ReceveAudioFrame(sockpp::tcp_socket& sock);
-	void ReceveVideoPkt(sockpp::tcp_socket& sock, VideoPkt* frame);
+	uint8_t* ReceveVideoPkt(sockpp::tcp_socket& sock, VideoPkt* frame);
 
 	void ConfirmFrame(sockpp::tcp_socket& sock);
 };

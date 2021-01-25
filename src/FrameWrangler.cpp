@@ -34,19 +34,17 @@ void FrameWrangler::Main()
 		PROFILE_FRAME("MainLoop");
 
 		VideoPkt frame;
-		FrameRecever::ReceveVideoPkt(video_socket, &frame);
+		uint8_t* data = FrameRecever::ReceveVideoPkt(video_socket, &frame);
 
 		size_t processedData = 0;
-		size_t dataOffset = offsetof(VideoPkt, data);
-		
 		for (int i = 0; i < 30; i++)
 		{
-			auto [decodedSize, decodedData] = m_decoder->Decode(frame.data + dataOffset + processedData, frame.frameSizes[i]);
+			auto [decodedSize, decodedData] = m_decoder->Decode(data + processedData, frame.frameSizes[i]);
 			processedData += frame.frameSizes[i];
 
 			if (decodedSize != 0)
 			{
-				OPTICK_EVENT("SendVideoAsync");
+				PROFILE_FUNC("SendVideoAsync");
 
 				frame.videoFrames[i].p_data = decodedData;
 				NDIlib_send_send_video_async_v2(*pNDI_send, &(frame.videoFrames[i]));
@@ -55,7 +53,7 @@ void FrameWrangler::Main()
 		}
 
 		NDIlib_send_send_video_async_v2(*pNDI_send, &NDIlib_video_frame_v2_t()); //this is a sync event so that we can free the array of recieved frames
-		free(frame.data);
+		free(data);
 		
 		FrameRecever::ConfirmFrame(video_socket);
 	}
