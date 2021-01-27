@@ -121,16 +121,24 @@ void FrameWrangler::ReceiveVideoPkt()
 	size_t dataSize = 0;
 	for (int i = 0; i < 30; i++) { dataSize += m_pktBack->frameSizes[i]; }
 
-	uint8_t* data = (uint8_t*)malloc(dataSize);
+	if (m_maxFrameBufferSize < dataSize)
+	{
+		printf("[DebugLog] Increasing buffer size from %llu to %llu\n", m_maxFrameBufferSize, dataSize);
 
-	if (m_socket.read_n((void*)data, dataSize) == -1)
+		m_globalFrameBuffer = (uint8_t*)realloc(m_globalFrameBuffer, dataSize);
+		m_maxFrameBufferSize = dataSize;
+
+		assert(m_globalFrameBuffer != nullptr, "Failed to allocate more memory, probabbly becasue the system is out of RAM!");
+	}
+
+	if (m_socket.read_n((void*)m_globalFrameBuffer, dataSize) == -1)
 	{
 		printf("Failed to read video packet data!\nError: %s\n", m_socket.last_error_str().c_str());
 	}
 
 	for (int i = 0; i < 30; i++)
 	{
-		m_pktBack->encodedDataPackets[i] = data;
-		data += m_pktBack->frameSizes[i];
+		m_pktBack->encodedDataPackets[i] = m_globalFrameBuffer;
+		m_globalFrameBuffer += m_pktBack->frameSizes[i];
 	}
 }
