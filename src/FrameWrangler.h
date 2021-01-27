@@ -4,6 +4,7 @@
 #include <mutex>
 #include <atomic>
 #include <thread>
+#include <condition_variable>
 
 #include "Processing.NDI.Lib.h"
 
@@ -29,6 +30,8 @@ private:
 	std::thread receverHandler;
 
 	std::mutex swapMutex;
+	std::mutex cvMutex;
+	std::condition_variable cv;
 
 	VideoPkt* pktFront = new VideoPkt();
 	VideoPkt* pktBack = new VideoPkt();

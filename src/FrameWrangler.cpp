@@ -33,9 +33,10 @@ void FrameWrangler::Stop()
 
 void FrameWrangler::Main()
 {
-	FrameRecever::ConfirmFrame(video_socket);
 	while (!m_exit)
 	{
+		cv.notify_one();
+
 		if (isReady)
 		{
 			PROFILE_FRAME("MainLoop");
@@ -57,12 +58,13 @@ void FrameWrangler::Main()
 				if (i == 25)
 				{
 					isReady = false;
+					cv.notify_one();
 				}
 
 			}
 
 			auto bsFrame = NDIlib_video_frame_v2_t();
-			NDIlib_send_send_video_async_v2(*pNDI_send, &bsFrame); //this is a sync event so that we can free the array of recieved frames
+			NDIlib_send_send_video_async_v2(*pNDI_send, &bsFrame); //this is a sync event so that ndi can flush the last frame and we can free the array of recieved frames
 		
 			free(pktFront->encodedDataPackets[0]);
 			swapMutex.unlock();
@@ -75,22 +77,24 @@ void FrameWrangler::Recever()
 	OPTICK_THREAD("ReceverThread");
 	while (!m_exit)
 	{
+		std::unique_lock<std::mutex> lk(cvMutex);
+		cv.wait(lk);
+
 		PROFILE_FUNC("Recieve");
-		//TODO: use condition variable to avoid spinlocking and wasting cycles
-		if (!isReady)
-		{
-			FrameRecever::ConfirmFrame(video_socket);
-			FrameRecever::ReceveVideoPkt(video_socket, pktBack);
 
-			swapMutex.lock();
-			
-			//swap the pointers
-			VideoPkt* tmp = pktFront;
-			pktFront = pktBack;
-			pktBack = tmp;
+		FrameRecever::ConfirmFrame(video_socket);
+		FrameRecever::ReceveVideoPkt(video_socket, pktBack);
 
-			isReady = true;
-			swapMutex.unlock();
-		}
+		swapMutex.lock();
+
+		//swap the pointers
+		VideoPkt* tmp = pktFront;
+		pktFront = pktBack;
+		pktBack = tmp;
+
+		isReady = true;
+		swapMutex.unlock();
+
+		lk.unlock();
 	}
 }
