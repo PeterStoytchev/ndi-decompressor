@@ -42,6 +42,6 @@ private:
 	Decoder* m_decoder;
 	NDIlib_send_instance_t* m_pNDI_send;
 
-	VideoPkt* pktFront = new VideoPkt();
-	VideoPkt* pktBack = new VideoPkt();
+	VideoPkt* m_pktFront = new VideoPkt();
+	VideoPkt* m_pktBack = new VideoPkt();
 };

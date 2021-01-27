@@ -44,14 +44,14 @@ void FrameWrangler::Main()
 
 			for (int i = 0; i < 30; i++)
 			{
-				auto [decodedSize, decodedData] = m_decoder->Decode(pktFront->encodedDataPackets[i], pktFront->frameSizes[i]);
+				auto [decodedSize, decodedData] = m_decoder->Decode(m_pktFront->encodedDataPackets[i], m_pktFront->frameSizes[i]);
 
 				if (decodedSize != 0)
 				{
 					OPTICK_EVENT("SendVideoAsync");
 
-					pktFront->videoFrames[i].p_data = decodedData;
-					NDIlib_send_send_video_async_v2(*m_pNDI_send, &(pktFront->videoFrames[i]));
+					m_pktFront->videoFrames[i].p_data = decodedData;
+					NDIlib_send_send_video_async_v2(*m_pNDI_send, &(m_pktFront->videoFrames[i]));
 				}
 
 				if (i == 25)
@@ -65,7 +65,7 @@ void FrameWrangler::Main()
 			auto bsFrame = NDIlib_video_frame_v2_t();
 			NDIlib_send_send_video_async_v2(*m_pNDI_send, &bsFrame); //this is a sync event so that ndi can flush the last frame and we can free the array of recieved frames
 		
-			free(pktFront->encodedDataPackets[0]);
+			free(m_pktFront->encodedDataPackets[0]);
 			m_swapMutex.unlock();
 		}
 	}
@@ -87,9 +87,9 @@ void FrameWrangler::Receiver()
 		m_swapMutex.lock();
 
 		//swap the pointers
-		VideoPkt* tmp = pktFront;
-		pktFront = pktBack;
-		pktBack = tmp;
+		VideoPkt* tmp = m_pktFront;
+		m_pktFront = m_pktBack;
+		m_pktBack = tmp;
 
 		m_isReady = true;
 		m_swapMutex.unlock();
@@ -113,13 +113,13 @@ void FrameWrangler::ReceiveVideoPkt()
 {
 	OPTICK_EVENT();
 
-	if (m_socket.read_n((void*)pktBack, sizeof(VideoPkt)) == -1)
+	if (m_socket.read_n((void*)m_pktBack, sizeof(VideoPkt)) == -1)
 	{
 		printf("Failed to read video packet size!\nError: %s\n", m_socket.last_error_str().c_str());
 	}
 
 	size_t dataSize = 0;
-	for (int i = 0; i < 30; i++) { dataSize += pktBack->frameSizes[i]; }
+	for (int i = 0; i < 30; i++) { dataSize += m_pktBack->frameSizes[i]; }
 
 	uint8_t* data = (uint8_t*)malloc(dataSize);
 
@@ -130,7 +130,7 @@ void FrameWrangler::ReceiveVideoPkt()
 
 	for (int i = 0; i < 30; i++)
 	{
-		pktBack->encodedDataPackets[i] = data;
-		data += pktBack->frameSizes[i];
+		m_pktBack->encodedDataPackets[i] = data;
+		data += m_pktBack->frameSizes[i];
 	}
 }
