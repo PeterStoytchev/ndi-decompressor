@@ -136,9 +136,10 @@ void FrameWrangler::ReceiveVideoPkt()
 		printf("Failed to read video packet data!\nError: %s\n", m_socket.last_error_str().c_str());
 	}
 
+	uint8_t* bufferPtr = m_globalFrameBuffer;
 	for (int i = 0; i < 30; i++)
 	{
-		m_pktBack->encodedDataPackets[i] = m_globalFrameBuffer;
-		m_globalFrameBuffer += m_pktBack->frameSizes[i];
+		m_pktBack->encodedDataPackets[i] = bufferPtr;
+		bufferPtr += m_pktBack->frameSizes[i];
 	}
 }
