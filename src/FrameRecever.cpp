@@ -3,11 +3,11 @@
 
 void FrameRecever::ReceveVideoPkt(sockpp::tcp_socket& sock, VideoPkt* frame)
 {
-	PROFILE_FUNC();
+	OPTICK_EVENT();
 
 	if (sock.read_n((void*)frame, sizeof(VideoPkt)) == -1)
 	{
-		printf("Failed to read video packet size!\nError: %s\n", sock.last_error_str());
+		printf("Failed to read video packet size!\nError: %s\n", sock.last_error_str().c_str());
 	}
 
 	size_t dataSize = 0;
@@ -17,7 +17,7 @@ void FrameRecever::ReceveVideoPkt(sockpp::tcp_socket& sock, VideoPkt* frame)
 
 	if (sock.read_n((void*)data, dataSize) == -1)
 	{
-		printf("Failed to read video packet data!\nError: %s\n", sock.last_error_str());
+		printf("Failed to read video packet data!\nError: %s\n", sock.last_error_str().c_str());
 	}
 
 	for (int i = 0; i < 30; i++)
@@ -29,7 +29,7 @@ void FrameRecever::ReceveVideoPkt(sockpp::tcp_socket& sock, VideoPkt* frame)
 
 void FrameRecever::ConfirmFrame(sockpp::tcp_socket& sock)
 {
-	PROFILE_FUNC();
+	OPTICK_EVENT();
 
 	char c = (char)7;
 
@@ -45,7 +45,7 @@ std::tuple<NDIlib_audio_frame_v2_t, float*, size_t> FrameRecever::ReceveAudioFra
 
 	if (sock.read_n((void*)&frame, sizeof(AudioFrame)) == -1)
 	{
-		printf("Failed to read audio frame details!\nError: %s\n", sock.last_error_str());
+		printf("Failed to read audio frame details!\nError: %s\n", sock.last_error_str().c_str());
 	}
 
 	NDIlib_audio_frame_v2_t NDI_audio_frame;
@@ -55,7 +55,7 @@ std::tuple<NDIlib_audio_frame_v2_t, float*, size_t> FrameRecever::ReceveAudioFra
 
 	if (sock.read_n((void*)dataBuffer, frame.dataSize) == -1)
 	{
-		printf("Failed to read audio data!\nError: %s\n", sock.last_error_str());
+		printf("Failed to read audio data!\nError: %s\n", sock.last_error_str().c_str());
 	}
 
 	return std::make_tuple(frame.audioFrame, (float*)dataBuffer, frame.dataSize);

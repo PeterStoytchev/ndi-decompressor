@@ -39,7 +39,7 @@ void FrameWrangler::Main()
 
 		if (isReady)
 		{
-			PROFILE_FRAME("MainLoop");
+			OPTICK_FRAME("MainLoop");
 			
 			swapMutex.lock();
 
@@ -49,7 +49,7 @@ void FrameWrangler::Main()
 
 				if (decodedSize != 0)
 				{
-					PROFILE_FUNC("SendVideoAsync");
+					OPTICK_EVENT("SendVideoAsync");
 
 					pktFront->videoFrames[i].p_data = decodedData;
 					NDIlib_send_send_video_async_v2(*pNDI_send, &(pktFront->videoFrames[i]));
@@ -80,7 +80,7 @@ void FrameWrangler::Recever()
 		std::unique_lock<std::mutex> lk(cvMutex);
 		cv.wait(lk);
 
-		PROFILE_FUNC("Recieve");
+		OPTICK_EVENT("Recieve");
 
 		FrameRecever::ConfirmFrame(video_socket);
 		FrameRecever::ReceveVideoPkt(video_socket, pktBack);

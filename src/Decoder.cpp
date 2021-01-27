@@ -94,7 +94,7 @@ Decoder::Decoder(DecoderSettings settings)
 
 std::tuple<size_t, uint8_t*> Decoder::Decode(uint8_t* compressedData, size_t size)
 {
-	PROFILE_FUNC();
+	OPTICK_EVENT();
 	if (!(frame = av_frame_alloc()) || !(sw_frame = av_frame_alloc()))
 	{
 		printf("Done goofed allocating frames\n");
