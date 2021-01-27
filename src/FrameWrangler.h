@@ -21,16 +21,16 @@ public:
 	void Stop();
 
 	void Main();
-	void Recever();
+	void Receiver();
 
 private:
 	void ConfirmFrame();
-	void ReceveVideoPkt();
+	void ReceiveVideoPkt();
 
 	sockpp::tcp_socket m_socket;
 
 	std::thread m_mainHandler;
-	std::thread m_receverHandler;
+	std::thread m_receiverHandler;
 
 	std::mutex m_swapMutex;
 	std::mutex m_cvMutex;

@@ -15,10 +15,10 @@ FrameWrangler::FrameWrangler(DecoderSettings decSettings, sockpp::tcp_acceptor& 
 	});
 	m_mainHandler.detach();
 
-	m_receverHandler = std::thread([this] {
-		Recever();
+	m_receiverHandler = std::thread([this] {
+		Receiver();
 	});
-	m_receverHandler.detach();
+	m_receiverHandler.detach();
 }
 
 FrameWrangler::~FrameWrangler()
@@ -71,7 +71,7 @@ void FrameWrangler::Main()
 	}
 }
 
-void FrameWrangler::Recever()
+void FrameWrangler::Receiver()
 {
 	OPTICK_THREAD("ReceverThread");
 	while (!m_exit)
@@ -82,7 +82,7 @@ void FrameWrangler::Recever()
 		OPTICK_EVENT("Recieve");
 
 		ConfirmFrame();
-		ReceveVideoPkt();
+		ReceiveVideoPkt();
 
 		m_swapMutex.lock();
 
@@ -109,7 +109,7 @@ void FrameWrangler::ConfirmFrame()
 	}
 }
 
-void FrameWrangler::ReceveVideoPkt()
+void FrameWrangler::ReceiveVideoPkt()
 {
 	OPTICK_EVENT();
 
