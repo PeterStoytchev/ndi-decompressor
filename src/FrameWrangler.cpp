@@ -72,8 +72,10 @@ void FrameWrangler::Main()
 
 void FrameWrangler::Recever()
 {
+	OPTICK_THREAD("ReceverThread");
 	while (!m_exit)
 	{
+		PROFILE_FUNC("Recieve");
 		//TODO: use condition variable to avoid spinlocking and wasting cycles
 		if (!isReady)
 		{
