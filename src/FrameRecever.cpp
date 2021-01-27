@@ -1,44 +1,6 @@
 #include "FrameRecever.h"
 #include "Profiler.h"
 
-void FrameRecever::ReceveVideoPkt(sockpp::tcp_socket& sock, VideoPkt* frame)
-{
-	OPTICK_EVENT();
-
-	if (sock.read_n((void*)frame, sizeof(VideoPkt)) == -1)
-	{
-		printf("Failed to read video packet size!\nError: %s\n", sock.last_error_str().c_str());
-	}
-
-	size_t dataSize = 0;
-	for (int i = 0; i < 30; i++) { dataSize += frame->frameSizes[i]; }
-
-	uint8_t* data = (uint8_t*)malloc(dataSize);
-
-	if (sock.read_n((void*)data, dataSize) == -1)
-	{
-		printf("Failed to read video packet data!\nError: %s\n", sock.last_error_str().c_str());
-	}
-
-	for (int i = 0; i < 30; i++)
-	{
-		frame->encodedDataPackets[i] = data;
-		data += frame->frameSizes[i];
-	}
-}
-
-void FrameRecever::ConfirmFrame(sockpp::tcp_socket& sock)
-{
-	OPTICK_EVENT();
-
-	char c = (char)7;
-
-	if (sock.write_n(&c, sizeof(c)) != sizeof(c))
-	{
-		printf("Failed to send confirmation!\nError: %s\n", sock.last_error_str().c_str());
-	}
-}
-
 std::tuple<NDIlib_audio_frame_v2_t, float*, size_t> FrameRecever::ReceveAudioFrame(sockpp::tcp_socket& sock)
 {
 	AudioFrame frame;
