@@ -26,6 +26,7 @@ public:
 private:
 	void ConfirmFrame();
 	void ReceiveVideoPkt();
+	void RecvAndSwap();
 
 	sockpp::tcp_socket m_socket;
 

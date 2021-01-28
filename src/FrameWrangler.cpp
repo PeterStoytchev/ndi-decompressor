@@ -33,6 +33,7 @@ void FrameWrangler::Stop()
 
 void FrameWrangler::Main()
 {
+	std::this_thread::sleep_for(std::chrono::milliseconds(250));
 	m_cv.notify_one();
 
 	while (!m_exit)
@@ -46,7 +47,7 @@ void FrameWrangler::Main()
 			for (int i = 0; i < 30; i++)
 			{
 				auto [decodedSize, decodedData] = m_decoder->Decode(m_pktFront->encodedDataPackets[i], m_pktFront->frameSizes[i]);
-
+				
 				if (decodedSize != 0)
 				{
 					OPTICK_EVENT("SendVideoAsync");
@@ -80,20 +81,13 @@ void FrameWrangler::Receiver()
 		std::unique_lock<std::mutex> lk(m_cvMutex);
 		m_cv.wait(lk);
 
+		printf("[DEBUG] past cvwait()\n");
+
 		OPTICK_EVENT("Recieve");
 
-		ConfirmFrame();
-		ReceiveVideoPkt();
-
-		m_swapMutex.lock();
-
-		//swap the pointers
-		VideoPkt* tmp = m_pktFront;
-		m_pktFront = m_pktBack;
-		m_pktBack = tmp;
+		RecvAndSwap();
 
 		m_isReady = true;
-		m_swapMutex.unlock();
 
 		lk.unlock();
 	}
@@ -132,7 +126,7 @@ void FrameWrangler::ReceiveVideoPkt()
 		assert(m_globalFrameBuffer != nullptr, "Failed to allocate more memory, probabbly becasue the system is out of RAM!");
 	}
 
-	if (m_socket.read_n((void*)m_globalFrameBuffer, dataSize) == -1)
+	if (m_socket.read_n((void*)m_globalFrameBuffer, dataSize) != dataSize)
 	{
 		printf("Failed to read video packet data!\nError: %s\n", m_socket.last_error_str().c_str());
 	}
@@ -143,4 +137,19 @@ void FrameWrangler::ReceiveVideoPkt()
 		m_pktBack->encodedDataPackets[i] = bufferPtr;
 		bufferPtr += m_pktBack->frameSizes[i];
 	}
+}
+
+void FrameWrangler::RecvAndSwap()
+{
+	ConfirmFrame();
+	ReceiveVideoPkt();
+
+	m_swapMutex.lock();
+
+	//swap the pointers
+	VideoPkt* tmp = m_pktFront;
+	m_pktFront = m_pktBack;
+	m_pktBack = tmp;
+
+	m_swapMutex.unlock();
 }
