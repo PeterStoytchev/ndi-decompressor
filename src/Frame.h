@@ -7,6 +7,9 @@ struct VideoPkt
 	unsigned int frameSizes[30];
 	NDIlib_video_frame_v2_t videoFrames[30];
 	uint8_t* encodedDataPackets[30];
+
+	uint8_t* frameBuffer = NULL;
+	size_t maxFrameBufferSize = 0;
 };
 
 struct AudioFrame

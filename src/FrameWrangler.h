@@ -45,7 +45,4 @@ private:
 
 	VideoPkt* m_pktFront = new VideoPkt();
 	VideoPkt* m_pktBack = new VideoPkt();
-
-	size_t m_maxFrameBufferSize = 0;
-	uint8_t* m_globalFrameBuffer = NULL;
 };
