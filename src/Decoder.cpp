@@ -50,7 +50,7 @@ Decoder::Decoder(DecoderSettings settings)
 			const AVCodecHWConfig* config = avcodec_get_hw_config(codec, i);
 			if (!config)
 			{
-				printf("fuck, decoder %s doesnt support device type %s\n", codec->name, av_hwdevice_get_type_name(type));
+				printf("[DebugLog][Decoder] Decoder %s doesnt support device type %s\n", codec->name, av_hwdevice_get_type_name(type));
 				assert(0);
 			}
 
@@ -66,7 +66,7 @@ Decoder::Decoder(DecoderSettings settings)
 		AVBufferRef* hw_device_ctx = NULL;
 		if ((err = av_hwdevice_ctx_create(&hw_device_ctx, type, NULL, NULL, 0)))
 		{
-			printf("OOOPSS\n");
+			printf("[DebugLog][Decoder] Couldn't create hwdevice_ctx.\n");
 		}
 		codecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
 
@@ -86,7 +86,7 @@ Decoder::Decoder(DecoderSettings settings)
 
 	if (avcodec_open2(codecContext, codec, NULL) < 0)
 	{
-		printf("Could not open codec!\n");
+		printf("[DebugLog][Decoder] Could not open codec!\n");
 		assert(0);
 	}
 	
@@ -97,7 +97,7 @@ std::tuple<size_t, uint8_t*> Decoder::Decode(uint8_t* compressedData, size_t siz
 	OPTICK_EVENT();
 	if (!(frame = av_frame_alloc()) || !(sw_frame = av_frame_alloc()))
 	{
-		printf("Done goofed allocating frames\n");
+		printf("[DebugLog][Decoder] Couldn't allocate frames\n");
 		assert(0);
 	}
 
@@ -111,7 +111,7 @@ std::tuple<size_t, uint8_t*> Decoder::Decode(uint8_t* compressedData, size_t siz
 	{
 		LOG_ERR(ret);
 
-		printf("Could not send_frame!\n");
+		printf("[DebugLog][Decoder] Could not send_frame!\n");
 		assert(0);
 	}
 
@@ -119,7 +119,7 @@ std::tuple<size_t, uint8_t*> Decoder::Decode(uint8_t* compressedData, size_t siz
 	ret = avcodec_receive_frame(codecContext, frame);
 	if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
 	{
-		printf("Buffering frame... send empty!\n");
+		printf("[DebugLog][Decoder] Buffering frame... send empty!\n");
 		av_frame_free(&frame);
 		av_frame_free(&sw_frame);
 		return std::make_tuple(0, nullptr);
@@ -139,7 +139,7 @@ std::tuple<size_t, uint8_t*> Decoder::Decode(uint8_t* compressedData, size_t siz
 	{
 		if ((ret = av_hwframe_transfer_data(sw_frame, frame, 0)))
 		{
-			printf("done goofed GPU->CPU!\n");
+			printf("[DebugLog][Decoder] Couldn't copy frame from GPU to CPU!\n");
 			assert(0);
 		}
 

@@ -97,7 +97,7 @@ void FrameWrangler::ConfirmFrame()
 	char c = (char)7;
 	if (m_socket.write_n(&c, sizeof(c)) != sizeof(c))
 	{
-		printf("Failed to send confirmation!\nError: %s\n", m_socket.last_error_str().c_str());
+		printf("[DebugLog][Networking] Failed to send confirmation!\nError: %s\n", m_socket.last_error_str().c_str());
 	}
 }
 
@@ -107,7 +107,7 @@ void FrameWrangler::ReceiveVideoPkt()
 
 	if (m_socket.read_n((void*)m_pktBack, sizeof(VideoPkt)) == -1)
 	{
-		printf("Failed to read video packet size!\nError: %s\n", m_socket.last_error_str().c_str());
+		printf("[DebugLog][Networking] Failed to read video packet size!\nError: %s\n", m_socket.last_error_str().c_str());
 	}
 
 	size_t dataSize = 0;
@@ -117,7 +117,7 @@ void FrameWrangler::ReceiveVideoPkt()
 
 	if (m_socket.read_n((void*)m_backBuffer->m_buffer, dataSize) != dataSize)
 	{
-		printf("Failed to read video packet data!\nError: %s\n", m_socket.last_error_str().c_str());
+		printf("[DebugLog][Networking] Failed to read video packet data!\nError: %s\n", m_socket.last_error_str().c_str());
 	}
 
 	uint8_t* bufferPtr = m_backBuffer->m_buffer;
