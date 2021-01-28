@@ -33,9 +33,10 @@ void FrameWrangler::Stop()
 
 void FrameWrangler::Main()
 {
+	m_cv.notify_one();
+
 	while (!m_exit)
 	{
-		m_cv.notify_one();
 		if (m_isReady)
 		{
 			OPTICK_FRAME("MainLoop");
