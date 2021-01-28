@@ -17,7 +17,7 @@ struct FrameBuffer
 	{
 		if (m_peakSize < potentialNewSize)
 		{
-			printf("[DebugLog] Increasing frame buffer size from %llu to %llu\n", m_peakSize, potentialNewSize);
+			printf("[DebugLog] Increasing frame buffer size with id %i from %llu to %llu\n", m_id, m_peakSize, potentialNewSize);
 
 			m_peakSize = potentialNewSize;
 			m_buffer = (uint8_t*)realloc(m_buffer, m_peakSize);
@@ -32,6 +32,7 @@ struct FrameBuffer
 
 private:
 	size_t m_peakSize = 0;
+	int m_id = rand();
 };
 
 class FrameWrangler

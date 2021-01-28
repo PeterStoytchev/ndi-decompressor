@@ -33,8 +33,8 @@ void FrameWrangler::Stop()
 
 void FrameWrangler::Main()
 {
-	std::this_thread::sleep_for(std::chrono::milliseconds(250));
-	m_cv.notify_one();
+	RecvAndSwap();
+	m_isReady = true;
 
 	while (!m_exit)
 	{
@@ -67,7 +67,6 @@ void FrameWrangler::Main()
 			auto bsFrame = NDIlib_video_frame_v2_t();
 			NDIlib_send_send_video_async_v2(*m_pNDI_send, &bsFrame); //this is a sync event so that ndi can flush the last frame and we can free the array of recieved frames
 		
-			free(m_pktFront->encodedDataPackets[0]);
 			m_swapMutex.unlock();
 		}
 	}
@@ -80,8 +79,6 @@ void FrameWrangler::Receiver()
 	{
 		std::unique_lock<std::mutex> lk(m_cvMutex);
 		m_cv.wait(lk);
-
-		printf("[DEBUG] past cvwait()\n");
 
 		OPTICK_EVENT("Recieve");
 
