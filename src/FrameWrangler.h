@@ -11,6 +11,28 @@
 #include "Decoder.h"
 #include "FrameRecever.h"
 
+struct FrameBuffer
+{
+	bool GrowIfNeeded(size_t potentialNewSize)
+	{
+		if (m_peakSize < potentialNewSize)
+		{
+			printf("[DebugLog] Increasing frame buffer size from %llu to %llu\n", m_peakSize, potentialNewSize);
+
+			m_peakSize = potentialNewSize;
+			m_buffer = (uint8_t*)realloc(m_buffer, m_peakSize);
+
+			assert(m_buffer != nullptr, "Failed to allocate more memory, probabbly becasue the system is out of RAM!");
+
+			return true;
+		}
+	}
+	
+	uint8_t* m_buffer = NULL;
+
+private:
+	size_t m_peakSize = 0;
+};
 
 class FrameWrangler
 {
@@ -45,4 +67,7 @@ private:
 
 	VideoPkt* m_pktFront = new VideoPkt();
 	VideoPkt* m_pktBack = new VideoPkt();
+
+	FrameBuffer* m_frontBuffer = new FrameBuffer();
+	FrameBuffer* m_backBuffer = new FrameBuffer();
 };

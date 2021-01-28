@@ -116,22 +116,14 @@ void FrameWrangler::ReceiveVideoPkt()
 	size_t dataSize = 0;
 	for (int i = 0; i < 30; i++) { dataSize += m_pktBack->frameSizes[i]; }
 
-	if (m_pktBack->maxFrameBufferSize < dataSize)
-	{
-		printf("[DebugLog] Increasing buffer size from %llu to %llu\n", m_pktBack->maxFrameBufferSize, dataSize);
+	m_backBuffer->GrowIfNeeded(dataSize);
 
-		m_pktBack->frameBuffer = (uint8_t*)realloc(m_pktBack->frameBuffer, dataSize);
-		m_pktBack->maxFrameBufferSize = dataSize;
-
-		assert(m_pktBack->frameBuffer != nullptr, "Failed to allocate more memory, probabbly becasue the system is out of RAM!");
-	}
-
-	if (m_socket.read_n((void*)m_pktBack->frameBuffer, dataSize) != dataSize)
+	if (m_socket.read_n((void*)m_backBuffer->m_buffer, dataSize) != dataSize)
 	{
 		printf("Failed to read video packet data!\nError: %s\n", m_socket.last_error_str().c_str());
 	}
 
-	uint8_t* bufferPtr = m_pktBack->frameBuffer;
+	uint8_t* bufferPtr = m_backBuffer->m_buffer;
 	for (int i = 0; i < 30; i++)
 	{
 		m_pktBack->encodedDataPackets[i] = bufferPtr;
@@ -146,10 +138,15 @@ void FrameWrangler::RecvAndSwap()
 
 	m_swapMutex.lock();
 
-	//swap the pointers
+	//swap the video pkt pointers
 	VideoPkt* tmp = m_pktFront;
 	m_pktFront = m_pktBack;
 	m_pktBack = tmp;
+
+	//swap the frame buffer pointers
+	FrameBuffer* tmpBuffer = m_frontBuffer;
+	m_frontBuffer = m_backBuffer;
+	m_backBuffer = tmpBuffer;
 
 	m_swapMutex.unlock();
 }
