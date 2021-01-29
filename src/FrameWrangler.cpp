@@ -107,7 +107,7 @@ void FrameWrangler::ReceiveVideoPkt()
 	OPTICK_EVENT();
 
 	size_t pktSize = 0;
-	if (m_socket.read_n((void*)&pktSize, sizeof(size_t)) == sizeof(size_t))
+	if (m_socket.read_n((void*)&pktSize, sizeof(size_t)) == -1)
 	{
 		printf("[DebugLog][Networking] Failed to read video packet size!\nError: %s\n", m_socket.last_error_str().c_str());
 	}
