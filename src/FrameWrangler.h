@@ -66,8 +66,8 @@ private:
 	Decoder* m_decoder;
 	NDIlib_send_instance_t* m_pNDI_send;
 
-	VideoPkt* m_pktFront = new VideoPkt();
-	VideoPkt* m_pktBack = new VideoPkt();
+	std::vector<VideoPkt*>* m_pktFront = new std::vector<VideoPkt*>();
+	std::vector<VideoPkt*>* m_pktBack = new std::vector<VideoPkt*>();
 
 	FrameBuffer* m_frontBuffer = new FrameBuffer();
 	FrameBuffer* m_backBuffer = new FrameBuffer();

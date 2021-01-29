@@ -46,14 +46,14 @@ void FrameWrangler::Main()
 
 			for (int i = 0; i < FRAME_BATCH_SIZE; i++)
 			{
-				auto [decodedSize, decodedData] = m_decoder->Decode(m_pktFront->encodedDataPackets[i], m_pktFront->frameSizes[i]);
+				auto [decodedSize, decodedData] = m_decoder->Decode(m_pktFront->at(i)->encodedDataPacket, m_pktFront->at(i)->frameSize);
 				
 				if (decodedSize != 0)
 				{
 					OPTICK_EVENT("SendVideoAsync");
 
-					m_pktFront->videoFrames[i].p_data = decodedData;
-					NDIlib_send_send_video_async_v2(*m_pNDI_send, &(m_pktFront->videoFrames[i]));
+					m_pktFront->at(i)->videoFrame.p_data = decodedData;
+					NDIlib_send_send_video_async_v2(*m_pNDI_send, &(m_pktFront->at(i)->videoFrame));
 				}
 
 				if (i ==  0)
@@ -67,6 +67,7 @@ void FrameWrangler::Main()
 			auto bsFrame = NDIlib_video_frame_v2_t();
 			NDIlib_send_send_video_async_v2(*m_pNDI_send, &bsFrame); //this is a sync event so that ndi can flush the last frame and we can free the array of recieved frames
 		
+			m_pktFront->clear();
 			m_swapMutex.unlock();
 		}
 	}
@@ -105,17 +106,15 @@ void FrameWrangler::ReceiveVideoPkt()
 {
 	OPTICK_EVENT();
 
-	if (m_socket.read_n((void*)m_pktBack, sizeof(VideoPkt)) == -1)
+	size_t pktSize = 0;
+	if (m_socket.read_n((void*)&pktSize, sizeof(size_t)) == sizeof(size_t))
 	{
 		printf("[DebugLog][Networking] Failed to read video packet size!\nError: %s\n", m_socket.last_error_str().c_str());
 	}
 
-	size_t dataSize = 0;
-	for (int i = 0; i < FRAME_BATCH_SIZE; i++) { dataSize += m_pktBack->frameSizes[i]; }
+	m_backBuffer->GrowIfNeeded(pktSize);
 
-	m_backBuffer->GrowIfNeeded(dataSize);
-
-	if (m_socket.read_n((void*)m_backBuffer->m_buffer, dataSize) != dataSize)
+	if (m_socket.read_n((void*)m_backBuffer->m_buffer, pktSize) != pktSize)
 	{
 		printf("[DebugLog][Networking] Failed to read video packet data!\nError: %s\n", m_socket.last_error_str().c_str());
 	}
@@ -123,8 +122,14 @@ void FrameWrangler::ReceiveVideoPkt()
 	uint8_t* bufferPtr = m_backBuffer->m_buffer;
 	for (int i = 0; i < FRAME_BATCH_SIZE; i++)
 	{
-		m_pktBack->encodedDataPackets[i] = bufferPtr;
-		bufferPtr += m_pktBack->frameSizes[i];
+		m_pktBack->push_back((VideoPkt*)bufferPtr);
+		bufferPtr += sizeof(VideoPkt);
+	}
+	
+	for (int i = 0; i < FRAME_BATCH_SIZE; i++)
+	{
+		m_pktBack->at(i)->encodedDataPacket = bufferPtr;
+		bufferPtr += m_pktBack->at(i)->frameSize;
 	}
 }
 
@@ -136,7 +141,7 @@ void FrameWrangler::RecvAndSwap()
 	m_swapMutex.lock();
 
 	//swap the video pkt pointers
-	VideoPkt* tmp = m_pktFront;
+	std::vector<VideoPkt*>* tmp = m_pktFront;
 	m_pktFront = m_pktBack;
 	m_pktBack = tmp;
 
