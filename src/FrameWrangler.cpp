@@ -44,7 +44,7 @@ void FrameWrangler::Main()
 			
 			m_swapMutex.lock();
 
-			for (int i = 0; i < 30; i++)
+			for (int i = 0; i < FRAME_BATCH_SIZE; i++)
 			{
 				auto [decodedSize, decodedData] = m_decoder->Decode(m_pktFront->encodedDataPackets[i], m_pktFront->frameSizes[i]);
 				
@@ -56,7 +56,7 @@ void FrameWrangler::Main()
 					NDIlib_send_send_video_async_v2(*m_pNDI_send, &(m_pktFront->videoFrames[i]));
 				}
 
-				if (i == 25)
+				if (i ==  0)
 				{
 					m_isReady = false;
 					m_cv.notify_one();
@@ -111,7 +111,7 @@ void FrameWrangler::ReceiveVideoPkt()
 	}
 
 	size_t dataSize = 0;
-	for (int i = 0; i < 30; i++) { dataSize += m_pktBack->frameSizes[i]; }
+	for (int i = 0; i < FRAME_BATCH_SIZE; i++) { dataSize += m_pktBack->frameSizes[i]; }
 
 	m_backBuffer->GrowIfNeeded(dataSize);
 
@@ -121,7 +121,7 @@ void FrameWrangler::ReceiveVideoPkt()
 	}
 
 	uint8_t* bufferPtr = m_backBuffer->m_buffer;
-	for (int i = 0; i < 30; i++)
+	for (int i = 0; i < FRAME_BATCH_SIZE; i++)
 	{
 		m_pktBack->encodedDataPackets[i] = bufferPtr;
 		bufferPtr += m_pktBack->frameSizes[i];
