@@ -28,6 +28,7 @@ struct FrameBuffer
 		}
 	}
 	
+	size_t frameCount = 0;
 	uint8_t* m_buffer = NULL;
 
 private:

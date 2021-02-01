@@ -112,7 +112,8 @@ std::tuple<size_t, uint8_t*> Decoder::Decode(uint8_t* compressedData, size_t siz
 		LOG_ERR(ret);
 
 		printf("[DebugLog][Decoder] Could not send_frame!\n");
-		assert(0);
+
+		return std::make_tuple(0, nullptr);
 	}
 
 

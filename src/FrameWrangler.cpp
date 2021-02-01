@@ -44,16 +44,21 @@ void FrameWrangler::Main()
 			
 			m_swapMutex.lock();
 
-			for (int i = 0; i < FRAME_BATCH_SIZE; i++)
-			{
-				auto [decodedSize, decodedData] = m_decoder->Decode(m_pktFront->at(i)->encodedDataPacket, m_pktFront->at(i)->frameSize);
-				
-				if (decodedSize != 0)
-				{
-					OPTICK_EVENT("SendVideoAsync");
+			printf("processing %zu frames\n", m_frontBuffer->frameCount);
 
-					m_pktFront->at(i)->videoFrame.p_data = decodedData;
-					NDIlib_send_send_video_async_v2(*m_pNDI_send, &(m_pktFront->at(i)->videoFrame));
+			for (int i = 0; i < m_frontBuffer->frameCount; i++)
+			{
+				if (m_pktFront->at(i)->frameSize != 0)
+				{
+					auto [decodedSize, decodedData] = m_decoder->Decode(m_pktFront->at(i)->encodedDataPacket, m_pktFront->at(i)->frameSize);
+
+					if (decodedSize != 0)
+					{
+						OPTICK_EVENT("SendVideoAsync");
+
+						m_pktFront->at(i)->videoFrame.p_data = decodedData;
+						NDIlib_send_send_video_async_v2(*m_pNDI_send, &(m_pktFront->at(i)->videoFrame));
+					}
 				}
 
 				if (i ==  0)
@@ -106,27 +111,28 @@ void FrameWrangler::ReceiveVideoPkt()
 {
 	OPTICK_EVENT();
 
-	size_t pktSize = 0;
-	if (m_socket.read_n((void*)&pktSize, sizeof(size_t)) == -1)
+	VideoPktDetails details;
+	if (m_socket.read_n((void*)&details, sizeof(VideoPktDetails)) == -1)
 	{
-		printf("[DebugLog][Networking] Failed to read video packet size!\nError: %s\n", m_socket.last_error_str().c_str());
+		printf("[DebugLog][Networking] Failed to read video packet details!\nError: %s\n", m_socket.last_error_str().c_str());
 	}
 
-	m_backBuffer->GrowIfNeeded(pktSize);
+	m_backBuffer->GrowIfNeeded(details.dataSize);
+	m_backBuffer->frameCount = details.frameCount;
 
-	if (m_socket.read_n((void*)m_backBuffer->m_buffer, pktSize) != pktSize)
+	if (m_socket.read_n((void*)m_backBuffer->m_buffer, details.dataSize) != details.dataSize)
 	{
 		printf("[DebugLog][Networking] Failed to read video packet data!\nError: %s\n", m_socket.last_error_str().c_str());
 	}
 
 	uint8_t* bufferPtr = m_backBuffer->m_buffer;
-	for (int i = 0; i < FRAME_BATCH_SIZE; i++)
+	for (int i = 0; i < details.frameCount; i++)
 	{
 		m_pktBack->push_back((VideoPkt*)bufferPtr);
 		bufferPtr += sizeof(VideoPkt);
 	}
 	
-	for (int i = 0; i < FRAME_BATCH_SIZE; i++)
+	for (int i = 0; i < details.frameCount; i++)
 	{
 		m_pktBack->at(i)->encodedDataPacket = bufferPtr;
 		bufferPtr += m_pktBack->at(i)->frameSize;
