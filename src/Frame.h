@@ -7,7 +7,8 @@
 struct VideoPktDetails
 {
 	size_t frameCount = 0;
-	size_t dataSize = 0;
+	size_t dataSize1 = 0;
+	size_t dataSize2 = 0;
 };
 
 

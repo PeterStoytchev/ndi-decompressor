@@ -52,17 +52,28 @@ private:
 	void ReceiveVideoPkt();
 	void RecvAndSwap();
 
+	void HandleTransferAsync();
+
 	sockpp::tcp_socket m_socket;
+	sockpp::tcp_socket m_auxSocket;
 
 	std::thread m_mainHandler;
 	std::thread m_receiverHandler;
+	std::thread m_tansferHandlerAsync;
 
-	std::mutex m_swapMutex;
+	size_t m_netSize1 = 0;
+	size_t m_netSize2 = 0;
+
 	std::mutex m_cvMutex;
+	std::mutex m_swapMutex;
+	std::mutex m_netCvMutex;
+	
 	std::condition_variable m_cv;
-
-	std::atomic<bool> m_isReady = false;
+	std::condition_variable m_netCv;
+	
 	std::atomic<bool> m_exit = false;
+	std::atomic<bool> m_isReady = false;
+	std::atomic<unsigned int> m_netCounter;
 
 	Decoder* m_decoder;
 	NDIlib_send_instance_t* m_pNDI_send;
@@ -72,4 +83,5 @@ private:
 
 	FrameBuffer* m_frontBuffer = new FrameBuffer();
 	FrameBuffer* m_backBuffer = new FrameBuffer();
+
 };
