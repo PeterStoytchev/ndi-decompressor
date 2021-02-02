@@ -106,7 +106,6 @@ std::tuple<size_t, uint8_t*> Decoder::Decode(uint8_t* compressedData, size_t siz
 
 	frame->pts = i;
 
-
 	if ((ret = avcodec_send_packet(codecContext, pkt)) < 0)
 	{
 		LOG_ERR(ret);

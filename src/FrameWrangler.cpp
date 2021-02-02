@@ -10,15 +10,15 @@ FrameWrangler::FrameWrangler(DecoderSettings decSettings, sockpp::tcp_acceptor& 
 
 	this->m_pNDI_send = m_pNDI_send;
 
-	m_mainHandler = std::thread([this] {
-		Main();
-	});
-	m_mainHandler.detach();
-
 	m_receiverHandler = std::thread([this] {
 		Receiver();
 	});
 	m_receiverHandler.detach();
+
+	m_mainHandler = std::thread([this] {
+		Main();
+	});
+	m_mainHandler.detach();
 }
 
 FrameWrangler::~FrameWrangler()
@@ -33,47 +33,49 @@ void FrameWrangler::Stop()
 
 void FrameWrangler::Main()
 {
-	RecvAndSwap();
-	m_isReady = true;
-
 	while (!m_exit)
 	{
-		if (m_isReady)
+		OPTICK_FRAME("MainLoop");
+
+		m_swapMutex.lock();
+		if (m_frameQueue.size() > 0)
 		{
-			OPTICK_FRAME("MainLoop");
-			
-			m_swapMutex.lock();
+			auto [details, pkts] = m_frameQueue[0];
 
-			printf("processing %zu frames\n", m_frontBuffer->frameCount);
+			//shift the vector one to the front, as if it were a queue
+			std::move(m_frameQueue.begin() + 1, m_frameQueue.end(), m_frameQueue.begin());
+			m_frameQueue.pop_back();
 
-			for (int i = 0; i < m_frontBuffer->frameCount; i++)
+			printf("%zu batches left in the queue\n", m_frameQueue.size());
+
+			m_swapMutex.unlock();
+
+			printf("processing %zu frames\n", details.frameCount);
+
+			for (int i = 0; i < details.frameCount; i++)
 			{
-				if (m_pktFront->at(i)->frameSize != 0)
+				auto [decodedSize, decodedData] = m_decoder->Decode(pkts[i]->encodedDataPacket, pkts[i]->frameSize);
+
+				if (decodedSize != 0)
 				{
-					auto [decodedSize, decodedData] = m_decoder->Decode(m_pktFront->at(i)->encodedDataPacket, m_pktFront->at(i)->frameSize);
+					OPTICK_EVENT("SendVideoAsync");
 
-					if (decodedSize != 0)
-					{
-						OPTICK_EVENT("SendVideoAsync");
-
-						m_pktFront->at(i)->videoFrame.p_data = decodedData;
-						NDIlib_send_send_video_async_v2(*m_pNDI_send, &(m_pktFront->at(i)->videoFrame));
-					}
+					pkts[i]->videoFrame.p_data = decodedData;
+					NDIlib_send_send_video_async_v2(*m_pNDI_send, &(pkts[i]->videoFrame));
 				}
-
-				if (i ==  0)
-				{
-					m_isReady = false;
-					m_cv.notify_one();
-				}
-
 			}
 
 			auto bsFrame = NDIlib_video_frame_v2_t();
 			NDIlib_send_send_video_async_v2(*m_pNDI_send, &bsFrame); //this is a sync event so that ndi can flush the last frame and we can free the array of recieved frames
+
+			pkts.clear();
 		
-			m_pktFront->clear();
 			m_swapMutex.unlock();
+		}
+		else
+		{
+			m_swapMutex.unlock();
+			std::this_thread::sleep_for(std::chrono::milliseconds(20));
 		}
 	}
 }
@@ -83,16 +85,47 @@ void FrameWrangler::Receiver()
 	OPTICK_THREAD("ReceverThread");
 	while (!m_exit)
 	{
-		std::unique_lock<std::mutex> lk(m_cvMutex);
-		m_cv.wait(lk);
-
 		OPTICK_EVENT("Recieve");
 
-		RecvAndSwap();
+		//recv the video details
+		VideoPktDetails details;
+		if (m_socket.read_n((void*)&details, sizeof(VideoPktDetails)) == -1)
+		{
+			printf("[DebugLog][Networking] Failed to read video packet details!\nError: %s\n", m_socket.last_error_str().c_str());
+		}
 
-		m_isReady = true;
+		uint8_t* buf = (uint8_t*)malloc(details.dataSize);
 
-		lk.unlock();
+		//recv the the buffer
+		if (m_socket.read_n((void*)buf, details.dataSize) != details.dataSize)
+		{
+			printf("[DebugLog][Networking] Failed to read video packet data!\nError: %s\n", m_socket.last_error_str().c_str());
+		}
+
+		std::vector<VideoPkt*> pkts;
+		pkts.reserve(details.frameCount);
+
+		//set the pointers to where the correct locations in buf
+		for (int i = 0; i < details.frameCount; i++)
+		{
+			pkts.push_back((VideoPkt*)buf);
+			buf += sizeof(VideoPkt);
+		}
+		
+		//set the data pointers in the VideoPkt*s to their locations in buf
+		for (int i = 0; i < details.frameCount; i++)
+		{
+			pkts[i]->encodedDataPacket = buf;
+			buf += pkts[i]->frameSize;
+		}
+		
+		m_swapMutex.lock();
+
+		m_frameQueue.push_back(std::make_tuple(details, pkts));
+
+		m_swapMutex.unlock();
+
+		ConfirmFrame();
 	}
 }
 
@@ -105,58 +138,4 @@ void FrameWrangler::ConfirmFrame()
 	{
 		printf("[DebugLog][Networking] Failed to send confirmation!\nError: %s\n", m_socket.last_error_str().c_str());
 	}
-}
-
-void FrameWrangler::ReceiveVideoPkt()
-{
-	OPTICK_EVENT();
-
-	//recv the video details
-	VideoPktDetails details;
-	if (m_socket.read_n((void*)&details, sizeof(VideoPktDetails)) == -1)
-	{
-		printf("[DebugLog][Networking] Failed to read video packet details!\nError: %s\n", m_socket.last_error_str().c_str());
-	}
-
-	m_backBuffer->GrowIfNeeded(details.dataSize);
-	m_backBuffer->frameCount = details.frameCount;
-
-	//recv the the buffer
-	if (m_socket.read_n((void*)m_backBuffer->m_buffer, details.dataSize) != details.dataSize)
-	{
-		printf("[DebugLog][Networking] Failed to read video packet data!\nError: %s\n", m_socket.last_error_str().c_str());
-	}
-
-	uint8_t* bufferPtr = m_backBuffer->m_buffer;
-	for (int i = 0; i < details.frameCount; i++)
-	{
-		m_pktBack->push_back((VideoPkt*)bufferPtr);
-		bufferPtr += sizeof(VideoPkt);
-	}
-	
-	for (int i = 0; i < details.frameCount; i++)
-	{
-		m_pktBack->at(i)->encodedDataPacket = bufferPtr;
-		bufferPtr += m_pktBack->at(i)->frameSize;
-	}
-}
-
-void FrameWrangler::RecvAndSwap()
-{
-	ConfirmFrame();
-	ReceiveVideoPkt();
-
-	m_swapMutex.lock();
-
-	//swap the video pkt pointers
-	std::vector<VideoPkt*>* tmp = m_pktFront;
-	m_pktFront = m_pktBack;
-	m_pktBack = tmp;
-
-	//swap the frame buffer pointers
-	FrameBuffer* tmpBuffer = m_frontBuffer;
-	m_frontBuffer = m_backBuffer;
-	m_backBuffer = tmpBuffer;
-
-	m_swapMutex.unlock();
 }

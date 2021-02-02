@@ -10,7 +10,6 @@ struct VideoPktDetails
 	size_t dataSize = 0;
 };
 
-
 struct VideoPkt
 {
 	unsigned int frameSize;
