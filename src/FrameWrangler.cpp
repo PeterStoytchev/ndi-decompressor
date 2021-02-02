@@ -68,6 +68,7 @@ void FrameWrangler::Main()
 			auto bsFrame = NDIlib_video_frame_v2_t();
 			NDIlib_send_send_video_async_v2(*m_pNDI_send, &bsFrame); //this is a sync event so that ndi can flush the last frame and we can free the array of recieved frames
 
+			free(pkts[0]);
 			pkts.clear();
 		
 			m_swapMutex.unlock();
