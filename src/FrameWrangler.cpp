@@ -118,11 +118,11 @@ void FrameWrangler::ReceiveVideoPkt()
 		printf("[DebugLog][Networking] Failed to read video packet details!\nError: %s\n", m_socket.last_error_str().c_str());
 	}
 
-	m_backBuffer->GrowIfNeeded(details.dataSize1);
+	m_backBuffer->GrowIfNeeded(details.dataSize);
 	m_backBuffer->frameCount = details.frameCount;
 
 	//recv the the buffer
-	if (m_socket.read_n((void*)m_backBuffer->m_buffer, details.dataSize1) != details.dataSize1)
+	if (m_socket.read_n((void*)m_backBuffer->m_buffer, details.dataSize) != details.dataSize)
 	{
 		printf("[DebugLog][Networking] Failed to read video packet data!\nError: %s\n", m_socket.last_error_str().c_str());
 	}
