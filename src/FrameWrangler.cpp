@@ -38,14 +38,18 @@ void FrameWrangler::Main()
 		OPTICK_FRAME("MainLoop");
 
 		m_swapMutex.lock();
-		if (m_frameQueue.size() > 0)
+		if (m_frameQueue.size() > 1)
 		{
 			auto [details, pkts] = m_frameQueue[0];
 
-			//shift the vector one to the front, as if it were a queue
-			std::move(m_frameQueue.begin() + 1, m_frameQueue.end(), m_frameQueue.begin());
-			m_frameQueue.pop_back();
+			{
+				OPTICK_EVENT("VectorShift");
 
+				//shift the vector one to the front, as if it were a queue
+				std::move(m_frameQueue.begin() + 1, m_frameQueue.end(), m_frameQueue.begin());
+				m_frameQueue.pop_back();
+			}
+		
 			printf("%zu batches left in the queue\n", m_frameQueue.size());
 
 			m_swapMutex.unlock();
@@ -68,13 +72,16 @@ void FrameWrangler::Main()
 			auto bsFrame = NDIlib_video_frame_v2_t();
 			NDIlib_send_send_video_async_v2(*m_pNDI_send, &bsFrame); //this is a sync event so that ndi can flush the last frame and we can free the array of recieved frames
 
-			free(pkts[0]);
-			pkts.clear();
-		
-			m_swapMutex.unlock();
+			{
+				OPTICK_EVENT("MemFree");
+				free(pkts[0]);
+				pkts.clear();
+			}
+			
 		}
 		else
 		{
+			OPTICK_EVENT("WaitForBatches");
 			m_swapMutex.unlock();
 			std::this_thread::sleep_for(std::chrono::milliseconds(20));
 		}
@@ -87,6 +94,8 @@ void FrameWrangler::Receiver()
 	while (!m_exit)
 	{
 		OPTICK_EVENT("Recieve");
+
+		ConfirmFrame();
 
 		//recv the video details
 		VideoPktDetails details;
@@ -119,14 +128,12 @@ void FrameWrangler::Receiver()
 			pkts[i]->encodedDataPacket = buf;
 			buf += pkts[i]->frameSize;
 		}
-		
+
 		m_swapMutex.lock();
 
 		m_frameQueue.push_back(std::make_tuple(details, pkts));
 
 		m_swapMutex.unlock();
-
-		ConfirmFrame();
 	}
 }
 
