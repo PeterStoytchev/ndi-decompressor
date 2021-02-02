@@ -5,7 +5,6 @@ FrameWrangler::FrameWrangler(DecoderSettings decSettings, sockpp::tcp_acceptor& 
 {
 	sockpp::inet_address peer;
 	m_socket = acceptor_video.accept(&peer);
-	m_auxSocket = acceptor_video.accept(&peer);
 
 	m_decoder = new Decoder(decSettings);
 
@@ -20,11 +19,6 @@ FrameWrangler::FrameWrangler(DecoderSettings decSettings, sockpp::tcp_acceptor& 
 		Receiver();
 	});
 	m_receiverHandler.detach();
-
-	m_tansferHandlerAsync = std::thread([this] {
-		HandleTransferAsync();
-	});
-	m_tansferHandlerAsync.detach();
 }
 
 FrameWrangler::~FrameWrangler()
@@ -124,23 +118,14 @@ void FrameWrangler::ReceiveVideoPkt()
 		printf("[DebugLog][Networking] Failed to read video packet details!\nError: %s\n", m_socket.last_error_str().c_str());
 	}
 
-	m_backBuffer->GrowIfNeeded(details.dataSize1 + details.dataSize2);
+	m_backBuffer->GrowIfNeeded(details.dataSize1);
 	m_backBuffer->frameCount = details.frameCount;
 
-	m_netSize1 = details.dataSize1;
-	m_netSize2 = details.dataSize2;
-
-	//start the second recv thread
-	m_netCounter = 1;
-	m_netCv.notify_one();
-
-	//recv the first part of the buffer
+	//recv the the buffer
 	if (m_socket.read_n((void*)m_backBuffer->m_buffer, details.dataSize1) != details.dataSize1)
 	{
 		printf("[DebugLog][Networking] Failed to read video packet data!\nError: %s\n", m_socket.last_error_str().c_str());
 	}
-
-	while (m_netCounter != 0); //spinlock until the second thread is done
 
 	uint8_t* bufferPtr = m_backBuffer->m_buffer;
 	for (int i = 0; i < details.frameCount; i++)
@@ -174,20 +159,4 @@ void FrameWrangler::RecvAndSwap()
 	m_backBuffer = tmpBuffer;
 
 	m_swapMutex.unlock();
-}
-
-void FrameWrangler::HandleTransferAsync()
-{
-	while (true)
-	{
-		std::unique_lock<std::mutex> lk(m_netCvMutex);
-		m_netCv.wait(lk);
-
-		if (m_auxSocket.read_n((void*)(m_backBuffer->m_buffer + m_netSize1), m_netSize2) != m_netSize2)
-		{
-			printf("[DebugLog][Networking] Failed to read video packet data!\nError: %s\n", m_socket.last_error_str().c_str());
-		}
-
-		m_netCounter--;
-	}
 }
