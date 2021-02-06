@@ -38,9 +38,9 @@ void FrameWrangler::Main()
 		OPTICK_FRAME("MainLoop");
 
 		m_swapMutex.lock();
-		if (m_frameQueue.size() > 1)
+		if (m_frameQueue.size() > 0)
 		{
-			auto [details, pkts] = m_frameQueue[0];
+			std::vector<VideoPkt> pkts  = m_frameQueue[0];
 
 			{
 				OPTICK_EVENT("VectorShift");
@@ -54,27 +54,20 @@ void FrameWrangler::Main()
 
 			m_swapMutex.unlock();
 
-			printf("processing %zu frames\n", details.frameCount);
+			printf("processing %zu frames\n", pkts.size());
 
-			for (int i = 0; i < details.frameCount; i++)
+			for (int i = 0; i < pkts.size(); i++)
 			{
-				auto [decodedSize, decodedData] = m_decoder->Decode(pkts[i]->encodedDataPacket, pkts[i]->frameSize);
-
-				if (decodedSize != 0)
 				{
 					OPTICK_EVENT("SendVideoAsync");
 
-					pkts[i]->videoFrame.p_data = decodedData;
-					NDIlib_send_send_video_async_v2(*m_pNDI_send, &(pkts[i]->videoFrame));
+					NDIlib_send_send_video_async_v2(*m_pNDI_send, &(pkts[i].videoFrame));
 				}
+				
 			}
-
-			auto bsFrame = NDIlib_video_frame_v2_t();
-			NDIlib_send_send_video_async_v2(*m_pNDI_send, &bsFrame); //this is a sync event so that ndi can flush the last frame and we can free the array of recieved frames
 
 			{
 				OPTICK_EVENT("MemFree");
-				free(pkts[0]);
 				pkts.clear();
 				m_batchCount--;
 			}
@@ -132,9 +125,30 @@ void FrameWrangler::Receiver()
 			buf += pkts[i]->frameSize;
 		}
 
+		std::vector<VideoPkt> decPkts;
+		decPkts.reserve(pkts.size());
+
+		for (VideoPkt* pkt : pkts)
+		{
+			OPTICK_EVENT("DecodeFrame");
+			auto [decodedSize, decodedData] = m_decoder->Decode(pkt->encodedDataPacket, pkt->frameSize);
+			
+			if (decodedSize != 0)
+			{
+				VideoPkt decPkt;
+				decPkt.frameSize = decodedSize;
+				decPkt.videoFrame = pkt->videoFrame;
+				decPkt.videoFrame.p_data = decodedData;
+
+				decPkts.push_back(decPkt);
+			}
+		}
+
+		free(buf);
+
 		m_swapMutex.lock();
 
-		m_frameQueue.push_back(std::make_tuple(details, pkts));
+		m_frameQueue.push_back(decPkts);
 
 		m_swapMutex.unlock();
 

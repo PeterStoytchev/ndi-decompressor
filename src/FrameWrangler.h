@@ -26,7 +26,7 @@ private:
 	Decoder* m_decoder;
 	NDIlib_send_instance_t* m_pNDI_send;
 
-	std::vector<std::tuple<VideoPktDetails, std::vector<VideoPkt*>>> m_frameQueue; //this is kinda bad on modern CPUs, rewrite with a vector later or write custom something
+	std::vector<std::vector<VideoPkt>> m_frameQueue; //this is kinda bad on modern CPUs, rewrite with a vector later or write custom something
 
 	std::thread m_mainHandler;
 	std::thread m_receiverHandler;
