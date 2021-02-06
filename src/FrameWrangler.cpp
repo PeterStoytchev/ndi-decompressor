@@ -76,6 +76,7 @@ void FrameWrangler::Main()
 				OPTICK_EVENT("MemFree");
 				free(pkts[0]);
 				pkts.clear();
+				m_batchCount--;
 			}
 			
 		}
@@ -94,6 +95,8 @@ void FrameWrangler::Receiver()
 	while (!m_exit)
 	{
 		OPTICK_EVENT("Recieve");
+
+		if (m_batchCount > 3) { while (m_batchCount != 1); } //if there are more than x batches, wait until there are y
 
 		ConfirmFrame();
 
@@ -134,6 +137,8 @@ void FrameWrangler::Receiver()
 		m_frameQueue.push_back(std::make_tuple(details, pkts));
 
 		m_swapMutex.unlock();
+
+		m_batchCount++;
 	}
 }
 

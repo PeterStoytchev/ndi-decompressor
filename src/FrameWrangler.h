@@ -34,6 +34,7 @@ private:
 	std::mutex m_swapMutex;
 	
 	std::atomic<bool> m_exit = false;
+	std::atomic<unsigned int> m_batchCount = 0;
 
 	sockpp::tcp_socket m_socket;
 };
