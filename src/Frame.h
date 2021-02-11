@@ -2,8 +2,6 @@
 
 #include <libavformat/avformat.h>
 
-#define FRAME_BATCH_SIZE 30
-
 struct VideoPktDetails
 {
 	size_t frameCount = 0;

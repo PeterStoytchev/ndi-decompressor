@@ -40,7 +40,7 @@ void FrameWrangler::Main()
 		m_swapMutex.lock();
 		if (m_frameQueue.size() > 0)
 		{
-			std::vector<VideoPkt> pkts  = m_frameQueue[0];
+			std::vector<VideoPkt*> pkts  = m_frameQueue[0];
 
 			{
 				OPTICK_EVENT("VectorShift");
@@ -50,24 +50,29 @@ void FrameWrangler::Main()
 				m_frameQueue.pop_back();
 			}
 		
-			printf("%zu batches left in the queue\n", m_frameQueue.size());
+			if (m_frameQueue.size() > 1)
+				printf("%zu batches left in the queue\n", m_frameQueue.size());
 
 			m_swapMutex.unlock();
 
-			printf("processing %zu frames\n", pkts.size());
-
 			for (int i = 0; i < pkts.size(); i++)
 			{
+				auto [decodedSize, decodedData] = m_decoder->Decode(pkts[i]->encodedDataPacket, pkts[i]->frameSize);
+
+				if (decodedSize != 0)
 				{
 					OPTICK_EVENT("SendVideoAsync");
 
-					NDIlib_send_send_video_async_v2(*m_pNDI_send, &(pkts[i].videoFrame));
+					pkts[i]->videoFrame.p_data = decodedData;
+					NDIlib_send_send_video_async_v2(*m_pNDI_send, &(pkts[i]->videoFrame));
 				}
 				
 			}
 
 			{
 				OPTICK_EVENT("MemFree");
+
+				free(pkts[0]);
 				pkts.clear();
 				m_batchCount--;
 			}
@@ -89,70 +94,63 @@ void FrameWrangler::Receiver()
 	{
 		OPTICK_EVENT("Recieve");
 
-		if (m_batchCount > 3) { while (m_batchCount != 1); } //if there are more than x batches, wait until there are y
-
+		if (m_batchCount > 3) { while (m_batchCount != 1) { printf("batch loop\n"); } } //if there are more than x batches, wait until there are y
 		ConfirmFrame();
 
-		//recv the video details
 		VideoPktDetails details;
-		if (m_socket.read_n((void*)&details, sizeof(VideoPktDetails)) == -1)
 		{
-			printf("[DebugLog][Networking] Failed to read video packet details!\nError: %s\n", m_socket.last_error_str().c_str());
-		}
+			OPTICK_EVENT("RecvVideoPktDetails");
 
-		uint8_t* buf = (uint8_t*)malloc(details.dataSize);
+			//recv the video details
+			if (m_socket.read_n((void*)&details, sizeof(VideoPktDetails)) == -1)
+			{
+				printf("[DebugLog][Networking] Failed to read video packet details!\nError: %s\n", m_socket.last_error_str().c_str());
+			}
 
-		//recv the the buffer
-		if (m_socket.read_n((void*)buf, details.dataSize) != details.dataSize)
-		{
-			printf("[DebugLog][Networking] Failed to read video packet data!\nError: %s\n", m_socket.last_error_str().c_str());
-		}
-
-		std::vector<VideoPkt*> pkts;
-		pkts.reserve(details.frameCount);
-
-		//set the pointers to where the correct locations in buf
-		for (int i = 0; i < details.frameCount; i++)
-		{
-			pkts.push_back((VideoPkt*)buf);
-			buf += sizeof(VideoPkt);
 		}
 		
-		//set the data pointers in the VideoPkt*s to their locations in buf
-		for (int i = 0; i < details.frameCount; i++)
-		{
-			pkts[i]->encodedDataPacket = buf;
-			buf += pkts[i]->frameSize;
-		}
+		uint8_t* buf = (uint8_t*)malloc(details.dataSize);
 
-		std::vector<VideoPkt> decPkts;
-		decPkts.reserve(pkts.size());
-
-		for (VideoPkt* pkt : pkts)
 		{
-			OPTICK_EVENT("DecodeFrame");
-			auto [decodedSize, decodedData] = m_decoder->Decode(pkt->encodedDataPacket, pkt->frameSize);
-			
-			if (decodedSize != 0)
+			OPTICK_EVENT("RecvVideoPktData");
+
+			//recv the the buffer
+			if (m_socket.read_n((void*)buf, details.dataSize) != details.dataSize)
 			{
-				VideoPkt decPkt;
-				decPkt.frameSize = decodedSize;
-				decPkt.videoFrame = pkt->videoFrame;
-				decPkt.videoFrame.p_data = decodedData;
-
-				decPkts.push_back(decPkt);
+				printf("[DebugLog][Networking] Failed to read video packet data!\nError: %s\n", m_socket.last_error_str().c_str());
 			}
 		}
 
-		free(buf);
+		std::vector<VideoPkt*> pkts;
+		
+		{
+			OPTICK_EVENT("FrameProcessing");
 
-		m_swapMutex.lock();
+			pkts.reserve(details.frameCount);
 
-		m_frameQueue.push_back(decPkts);
+			//set the pointers to where the correct locations in buf
+			for (int i = 0; i < details.frameCount; i++)
+			{
+				pkts.push_back((VideoPkt*)buf);
+				buf += sizeof(VideoPkt);
+			}
 
-		m_swapMutex.unlock();
+			//set the data pointers in the VideoPkt*s to their locations in buf
+			for (int i = 0; i < details.frameCount; i++)
+			{
+				pkts[i]->encodedDataPacket = buf;
+				buf += pkts[i]->frameSize;
+			}
+		}
 
-		m_batchCount++;
+		{
+			OPTICK_EVENT("FrameInsertion");
+
+			m_swapMutex.lock();
+			m_frameQueue.push_back(pkts);
+			m_swapMutex.unlock();
+			m_batchCount++;
+		}
 	}
 }
 
