@@ -1,7 +1,7 @@
 useHardwareAccel: false
 hwDeviceName: dxva2
 srcName: banananana
-codecName: hevc
+codecName: h264
 threads: 8
 videoPort: 1337
 audioPort: 1338

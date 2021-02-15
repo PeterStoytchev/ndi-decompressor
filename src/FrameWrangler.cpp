@@ -50,6 +50,7 @@ void FrameWrangler::Main()
 				m_frameQueue.pop_back();
 			}
 		
+
 			if (m_frameQueue.size() > 1)
 				printf("%zu batches left in the queue\n", m_frameQueue.size());
 
@@ -82,7 +83,7 @@ void FrameWrangler::Main()
 		{
 			OPTICK_EVENT("WaitForBatches");
 			m_swapMutex.unlock();
-			std::this_thread::sleep_for(std::chrono::milliseconds(20));
+			std::this_thread::sleep_for(std::chrono::milliseconds(5));
 		}
 	}
 }
@@ -94,7 +95,15 @@ void FrameWrangler::Receiver()
 	{
 		OPTICK_EVENT("Recieve");
 
-		if (m_batchCount > 3) { while (m_batchCount != 1) { printf("batch loop\n"); } } //if there are more than x batches, wait until there are y
+		auto t1 = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
+		if (m_batchCount > 3) { while (m_batchCount != 1); } //if there are more than x batches, wait until there are y
+
+		auto t2 = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
+		auto dur = t2 - t1;
+
+		if (dur > 1)
+			std::cout << "batch loop time: " << dur << "ms \n";
+
 		ConfirmFrame();
 
 		VideoPktDetails details;
