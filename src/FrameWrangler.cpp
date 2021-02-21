@@ -50,6 +50,7 @@ void FrameWrangler::Main()
 				m_frameQueue.pop_back();
 			}
 		
+			m_batchCount--;
 
 			if (m_frameQueue.size() > 1)
 				printf("%zu batches left in the queue\n", m_frameQueue.size());
@@ -72,7 +73,6 @@ void FrameWrangler::Main()
 
 			free(frames->encodedFramePtrs[0]);
 			free(frames);
-			m_batchCount--;
 		}
 		else
 		{
@@ -90,10 +90,10 @@ void FrameWrangler::Receiver()
 	{
 		OPTICK_EVENT("Recieve");
 
-		auto t1 = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
-		if (m_batchCount > 3) { while (m_batchCount != 1); } //if there are more than x batches, wait until there are y
+		auto t1 = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
+		if (m_batchCount > 1) { while (m_batchCount != 0); } //if there are more than x batches, wait until there are y
 
-		auto t2 = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
+		auto t2 = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
 		auto dur = t2 - t1;
 
 		if (dur > 1)
