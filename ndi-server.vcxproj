@@ -171,7 +171,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\FrameRecever.cpp" />
     <ClCompile Include="src\FrameWrangler.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Decoder.cpp" />
@@ -192,7 +191,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Frame.h" />
-    <ClInclude Include="src\FrameRecever.h" />
     <ClInclude Include="src\Decoder.h" />
     <ClInclude Include="src\FrameWrangler.h" />
     <ClInclude Include="src\optik\optick.config.h" />

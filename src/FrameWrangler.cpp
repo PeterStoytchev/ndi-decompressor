@@ -59,19 +59,20 @@ void FrameWrangler::Main()
 
 			for (int i = 0; i < FRAME_BATCH_SIZE; i++)
 			{
-				auto [decodedSize, decodedData] = m_decoder->Decode(frames->encodedFramePtrs[i], frames->encodedFrameSizes[i]);
+				NDIlib_send_send_audio_v2(*m_pNDI_send, &frames->ndiAudioFrames[i]);
+
+				auto [decodedSize, decodedData] = m_decoder->Decode(frames->encodedVideoPtrs[i], frames->encodedVideoSizes[i]);
 
 				if (decodedSize != 0)
 				{
 					OPTICK_EVENT("SendVideoAsync");
 
-					frames->videoFrames[i].p_data = decodedData;
-					NDIlib_send_send_video_async_v2(*m_pNDI_send, &(frames->videoFrames[i]));
+					frames->ndiVideoFrames[i].p_data = decodedData;
+					NDIlib_send_send_video_async_v2(*m_pNDI_send, &(frames->ndiVideoFrames[i]));
 				}
 				
 			}
 
-			free(frames->encodedFramePtrs[0]);
 			free(frames);
 		}
 		else
@@ -101,41 +102,50 @@ void FrameWrangler::Receiver()
 
 		ConfirmFrame();
 
-		FrameBuffer* details = (FrameBuffer*)malloc(sizeof(FrameBuffer));
+		size_t dataSize = 0;
 		{
 			OPTICK_EVENT("RecvFrameBuffer");
 
-			if (m_socket.read_n((void*)details, sizeof(FrameBuffer)) == -1)
+			if (m_socket.read_n((void*)&dataSize, sizeof(size_t)) == -1)
 			{
 				printf("[DebugLog][Networking] Failed to read video packet details!\nError: %s\n", m_socket.last_error_str().c_str());
 			}
 
 		}
 		
-		uint8_t* buf = (uint8_t*)malloc(details->totalDataSize);
+		uint8_t* buf = (uint8_t*)malloc(dataSize);
 
 		{
 			OPTICK_EVENT("RecvVideoData");
 
 			//recv the the buffer
-			if (m_socket.read_n((void*)buf, details->totalDataSize) != details->totalDataSize)
+			if (m_socket.read_n((void*)buf, dataSize) != dataSize)
 			{
 				printf("[DebugLog][Networking] Failed to read video packet data!\nError: %s\n", m_socket.last_error_str().c_str());
 			}
 		}
 
+		FrameBuffer* frameBuf = (FrameBuffer*)buf;
+		buf += sizeof(FrameBuffer);
+
 		//set the data pointers in the VideoPkt*s to their locations in buf
 		for (int i = 0; i < FRAME_BATCH_SIZE; i++)
 		{
-			details->encodedFramePtrs[i] = buf;
-			buf += details->encodedFrameSizes[i];
+			frameBuf->encodedVideoPtrs[i] = buf;
+			buf += frameBuf->encodedVideoSizes[i];
+		}
+
+		for (int i = 0; i < FRAME_BATCH_SIZE; i++)
+		{
+			frameBuf->ndiAudioFrames[i].p_data = (float*)buf;
+			buf += sizeof(float) * frameBuf->ndiAudioFrames[i].no_samples * frameBuf->ndiAudioFrames[i].no_channels;
 		}
 
 		{
 			OPTICK_EVENT("FrameInsertion");
 
 			m_swapMutex.lock();
-			m_frameQueue.push_back(details);
+			m_frameQueue.push_back(frameBuf);
 			m_swapMutex.unlock();
 			m_batchCount++;
 		}

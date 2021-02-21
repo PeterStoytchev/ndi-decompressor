@@ -3,11 +3,29 @@
 #include <mutex>
 #include <atomic>
 #include <thread>
-
-#include "Processing.NDI.Lib.h"
+#include <tuple>
+#include <future>
 
 #include "Decoder.h"
-#include "FrameRecever.h"
+
+#include "sockpp/tcp_acceptor.h"
+#include "sockpp/version.h"
+
+#ifdef _DEBUG
+#pragma comment(lib, "sockpp-debug")
+#endif // _DEBUG
+
+#ifndef _DEBUG
+#pragma comment(lib, "sockpp-release")
+#endif
+
+#include "Processing.NDI.Lib.h"
+#include "Frame.h"
+
+extern "C"
+{
+#include <libavutil/common.h>
+}
 
 class FrameWrangler
 {
