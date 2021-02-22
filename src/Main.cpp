@@ -34,14 +34,14 @@ int main(int argc, char** argv)
 	}
 
 	sockpp::socket_initializer sockInit;
-	sockpp::tcp_acceptor acceptor_video(settings.videoPort);
+	sockpp::tcp_acceptor acceptor_video(settings.dataPort);
 
 	NDIlib_send_create_t NDI_send_create_desc;
 	NDI_send_create_desc.p_ndi_name = settings.srcName.c_str();
 	pNDI_send = NDIlib_send_create(&NDI_send_create_desc);
 
 	sockpp::inet_address peer;
-	printf("Video wating on port: %d\n", settings.videoPort);
+	printf("Wating on port: %d\n", settings.dataPort);
 	
 	wrangler = new FrameWrangler(settings, acceptor_video, &pNDI_send);
 

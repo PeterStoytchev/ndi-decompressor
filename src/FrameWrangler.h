@@ -37,7 +37,7 @@ public:
 
 	void Main();
 	void Receiver();
-
+	void HandleAudio();
 private:
 	void ConfirmFrame();
 
@@ -47,11 +47,18 @@ private:
 	std::vector<FrameBuffer*> m_frameQueue;
 
 	std::thread m_receiverHandler;
+	std::thread m_audioHandler;
 
 	std::mutex m_swapMutex;
+	std::mutex m_cvAudioMutex;
+	
+	std::condition_variable m_cvAudio;
 	
 	std::atomic<bool> m_exit = false;
+	std::atomic<bool> m_audioDone = false;
 	std::atomic<unsigned int> m_batchCount = 0;
+
+	FrameBuffer* m_workingBuffer;
 
 	sockpp::tcp_socket m_socket;
 };

@@ -15,12 +15,18 @@ FrameWrangler::FrameWrangler(DecoderSettings decSettings, sockpp::tcp_acceptor& 
 	});
 	m_receiverHandler.detach();
 
+	m_audioHandler = std::thread([this] {
+		HandleAudio();
+	});
+	m_audioHandler.detach();
+
 	Main();
 }
 
 FrameWrangler::~FrameWrangler()
 {
 	m_receiverHandler.join();
+	m_audioHandler.join();
 }
 
 void FrameWrangler::Stop()
@@ -37,7 +43,7 @@ void FrameWrangler::Main()
 		m_swapMutex.lock();
 		if (m_frameQueue.size() > 0)
 		{
-			FrameBuffer* frames  = m_frameQueue[0];
+			m_workingBuffer  = m_frameQueue[0];
 
 			{
 				OPTICK_EVENT("VectorShift");
@@ -55,26 +61,24 @@ void FrameWrangler::Main()
 
 			for (int i = 0; i < FRAME_BATCH_SIZE; i++)
 			{
-				{
-					OPTICK_EVENT("SendAudio");
-					NDIlib_send_send_audio_v2(*m_pNDI_send, &frames->ndiAudioFrames[i]);
-				}
-
-				auto [decodedSize, decodedData] = m_decoder->Decode(frames->encodedVideoPtrs[i], frames->encodedVideoSizes[i]);
+				auto [decodedSize, decodedData] = m_decoder->Decode(m_workingBuffer->encodedVideoPtrs[i], m_workingBuffer->encodedVideoSizes[i]);
 
 				if (decodedSize != 0)
 				{
 					OPTICK_EVENT("SendVideoAsync");
 
-					frames->ndiVideoFrames[i].p_data = decodedData;
-					NDIlib_send_send_video_async_v2(*m_pNDI_send, &(frames->ndiVideoFrames[i]));
+					m_workingBuffer->ndiVideoFrames[i].p_data = decodedData;
+					NDIlib_send_send_video_async_v2(*m_pNDI_send, &(m_workingBuffer->ndiVideoFrames[i]));
 				}
 				
 			}
 
+			while (!m_audioDone);
+			m_audioDone = false;
+
 			m_batchCount--;
 
-			free(frames);
+			free(m_workingBuffer);
 		}
 		else
 		{
@@ -82,6 +86,29 @@ void FrameWrangler::Main()
 			m_swapMutex.unlock();
 			std::this_thread::sleep_for(std::chrono::milliseconds(5));
 		}
+	}
+}
+
+void FrameWrangler::HandleAudio()
+{
+	OPTICK_THREAD("AudioThread");
+	while (!m_exit)
+	{
+		OPTICK_EVENT("HandleAudio");
+
+		std::unique_lock<std::mutex> lk(m_cvAudioMutex);
+		m_cvAudio.wait(lk);
+		
+		for (int i = 0; i < FRAME_BATCH_SIZE; i++)
+		{
+			{
+				OPTICK_EVENT("SendAudio");
+				NDIlib_send_send_audio_v2(*m_pNDI_send, &(m_workingBuffer->ndiAudioFrames[i]));
+			}
+		}
+
+		m_audioDone = true;
+
 	}
 }
 
