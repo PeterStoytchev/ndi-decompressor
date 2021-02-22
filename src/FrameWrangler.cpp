@@ -53,6 +53,7 @@ void FrameWrangler::Main()
 				m_frameQueue.pop_back();
 			}
 		
+			m_cvAudio.notify_one();
 
 			if (m_frameQueue.size() > 1)
 				printf("%zu batches left in the queue\n", m_frameQueue.size());
@@ -73,7 +74,7 @@ void FrameWrangler::Main()
 				
 			}
 
-			while (!m_audioDone);
+			while (m_audioDone == false);
 			m_audioDone = false;
 
 			m_batchCount--;
@@ -99,7 +100,7 @@ void FrameWrangler::HandleAudio()
 		std::unique_lock<std::mutex> lk(m_cvAudioMutex);
 		m_cvAudio.wait(lk);
 		
-		for (int i = 0; i < FRAME_BATCH_SIZE; i++)
+		for (int i = 0; i < FRAME_BATCH_SIZE_AUDIO; i++)
 		{
 			{
 				OPTICK_EVENT("SendAudio");
@@ -163,7 +164,7 @@ void FrameWrangler::Receiver()
 			buf += frameBuf->encodedVideoSizes[i];
 		}
 
-		for (int i = 0; i < FRAME_BATCH_SIZE; i++)
+		for (int i = 0; i < FRAME_BATCH_SIZE_AUDIO; i++)
 		{
 			frameBuf->ndiAudioFrames[i].p_data = (float*)buf;
 			buf += sizeof(float) * frameBuf->ndiAudioFrames[i].no_samples * frameBuf->ndiAudioFrames[i].no_channels;
