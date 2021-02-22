@@ -15,15 +15,12 @@ FrameWrangler::FrameWrangler(DecoderSettings decSettings, sockpp::tcp_acceptor& 
 	});
 	m_receiverHandler.detach();
 
-	m_mainHandler = std::thread([this] {
-		Main();
-	});
-	m_mainHandler.detach();
+	Main();
 }
 
 FrameWrangler::~FrameWrangler()
 {
-	m_mainHandler.join();
+	m_receiverHandler.join();
 }
 
 void FrameWrangler::Stop()
@@ -50,7 +47,6 @@ void FrameWrangler::Main()
 				m_frameQueue.pop_back();
 			}
 		
-			m_batchCount--;
 
 			if (m_frameQueue.size() > 1)
 				printf("%zu batches left in the queue\n", m_frameQueue.size());
@@ -59,7 +55,10 @@ void FrameWrangler::Main()
 
 			for (int i = 0; i < FRAME_BATCH_SIZE; i++)
 			{
-				NDIlib_send_send_audio_v2(*m_pNDI_send, &frames->ndiAudioFrames[i]);
+				{
+					OPTICK_EVENT("SendAudio");
+					NDIlib_send_send_audio_v2(*m_pNDI_send, &frames->ndiAudioFrames[i]);
+				}
 
 				auto [decodedSize, decodedData] = m_decoder->Decode(frames->encodedVideoPtrs[i], frames->encodedVideoSizes[i]);
 
@@ -72,6 +71,8 @@ void FrameWrangler::Main()
 				}
 				
 			}
+
+			m_batchCount--;
 
 			free(frames);
 		}
@@ -92,7 +93,7 @@ void FrameWrangler::Receiver()
 		OPTICK_EVENT("Recieve");
 
 		auto t1 = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
-		if (m_batchCount > 1) { while (m_batchCount != 0); } //if there are more than x batches, wait until there are y
+		if (m_batchCount > 2) { while (m_batchCount != 1); } //if there are more than x batches, wait until there are y
 
 		auto t2 = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
 		auto dur = t2 - t1;

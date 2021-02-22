@@ -44,6 +44,6 @@ int main(int argc, char** argv)
 	printf("Video wating on port: %d\n", settings.videoPort);
 	
 	wrangler = new FrameWrangler(settings, acceptor_video, &pNDI_send);
-	
+
 	delete wrangler;
 }

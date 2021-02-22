@@ -46,7 +46,6 @@ private:
 
 	std::vector<FrameBuffer*> m_frameQueue;
 
-	std::thread m_mainHandler;
 	std::thread m_receiverHandler;
 
 	std::mutex m_swapMutex;
