@@ -52,13 +52,13 @@ void FrameWrangler::Main()
 				std::move(m_frameQueue.begin() + 1, m_frameQueue.end(), m_frameQueue.begin());
 				m_frameQueue.pop_back();
 			}
-		
-			m_cvAudio.notify_one();
 
 			if (m_frameQueue.size() > 1)
 				printf("%zu batches left in the queue\n", m_frameQueue.size());
 
 			m_swapMutex.unlock();
+
+			m_cvAudio.notify_one();
 
 			for (int i = 0; i < FRAME_BATCH_SIZE; i++)
 			{
@@ -74,7 +74,7 @@ void FrameWrangler::Main()
 				
 			}
 
-			while (m_audioDone == false);
+			while (m_audioDone == false) { printf("%i) audio not done!\n", rand()); };
 			m_audioDone = false;
 
 			m_batchCount--;
@@ -95,11 +95,11 @@ void FrameWrangler::HandleAudio()
 	OPTICK_THREAD("AudioThread");
 	while (!m_exit)
 	{
-		OPTICK_EVENT("HandleAudio");
-
 		std::unique_lock<std::mutex> lk(m_cvAudioMutex);
 		m_cvAudio.wait(lk);
-		
+
+		OPTICK_EVENT("HandleAudio");
+
 		for (int i = 0; i < FRAME_BATCH_SIZE_AUDIO; i++)
 		{
 			{
