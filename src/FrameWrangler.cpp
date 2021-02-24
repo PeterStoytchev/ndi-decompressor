@@ -39,10 +39,15 @@ void FrameWrangler::Main()
 	while (!m_exit)
 	{
 		OPTICK_FRAME("MainLoop");
+		DEBUG_LOG("[Main] Starting new iteration\n");
 
 		m_swapMutex.lock();
+
+		DEBUG_LOG("[Main] Got lock!\n");
 		if (m_frameQueue.size() > 0)
 		{
+			DEBUG_LOG("[Main] There is a batch in the queue, pulling it!\n");
+
 			m_workingBuffer  = m_frameQueue[0];
 
 			{
@@ -59,10 +64,13 @@ void FrameWrangler::Main()
 			m_swapMutex.unlock();
 
 			m_cvAudio.notify_one();
+			DEBUG_LOG("[Main] Released lock and started audio thread!\n");
 
 			for (int i = 0; i < FRAME_BATCH_SIZE; i++)
 			{
 				auto [decodedSize, decodedData] = m_decoder->Decode(m_workingBuffer->encodedVideoPtrs[i], m_workingBuffer->encodedVideoSizes[i]);
+
+				DEBUG_LOG("[Main] Decoded a frame!\n");
 
 				if (decodedSize != 0)
 				{
@@ -70,21 +78,30 @@ void FrameWrangler::Main()
 
 					m_workingBuffer->ndiVideoFrames[i].p_data = decodedData;
 					NDIlib_send_send_video_async_v2(*m_pNDI_send, &(m_workingBuffer->ndiVideoFrames[i]));
+
+					DEBUG_LOG("[Main] The frame was valid and was sent to NDI!\n");
 				}
 				
 			}
 
-			while (m_audioDone == false) { printf("%i) audio not done!\n", rand()); };
+			DEBUG_LOG("[Main] Frames sent to NDI, waiting for audio!\n");
+
+			while (m_audioDone == false);
 			m_audioDone = false;
 
 			m_batchCount--;
+
+			DEBUG_LOG("[Main] Audio is done, m_audioDone is set to false! Batch count --\n");
 
 			free(m_workingBuffer);
 		}
 		else
 		{
 			OPTICK_EVENT("WaitForBatches");
+
 			m_swapMutex.unlock();
+
+			DEBUG_LOG("[Main] Lock released! No frames in the queue, waiting!\n");
 			std::this_thread::sleep_for(std::chrono::milliseconds(5));
 		}
 	}
@@ -95,8 +112,11 @@ void FrameWrangler::HandleAudio()
 	OPTICK_THREAD("AudioThread");
 	while (!m_exit)
 	{
+		DEBUG_LOG("[NdiAudioThread] Starting new iteration, waiting on condition_variable!\n");
 		std::unique_lock<std::mutex> lk(m_cvAudioMutex);
 		m_cvAudio.wait(lk);
+
+		DEBUG_LOG("[NdiAudioThread] Condition_variable triggered!\n");
 
 		OPTICK_EVENT("HandleAudio");
 
@@ -105,11 +125,14 @@ void FrameWrangler::HandleAudio()
 			{
 				OPTICK_EVENT("SendAudio");
 				NDIlib_send_send_audio_v2(*m_pNDI_send, &(m_workingBuffer->ndiAudioFrames[i]));
+			
+				DEBUG_LOG("[NdiAudioThread] Sent frame to NDI!\n");
 			}
 		}
 
 		m_audioDone = true;
 
+		DEBUG_LOG("[NdiAudioThread] Signal that the audio thread is done!\n");
 	}
 }
 
@@ -120,8 +143,15 @@ void FrameWrangler::Receiver()
 	{
 		OPTICK_EVENT("Recieve");
 
+		DEBUG_LOG("[Network] Started new iteration!\n");
+
 		auto t1 = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
-		if (m_batchCount > 2) { while (m_batchCount != 1); } //if there are more than x batches, wait until there are y
+		if (m_batchCount > 2) 
+		{ 
+			DEBUG_LOG("[Network] More than the allowed number of batches in the buffer, waiting for clear!\n");
+			while (m_batchCount != 1); //Heisenbug? 
+			DEBUG_LOG("[Network] Done waiting!\n");
+		}
 
 		auto t2 = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
 		auto dur = t2 - t1;
@@ -130,6 +160,7 @@ void FrameWrangler::Receiver()
 			std::cout << "batch loop time: " << dur << "ms \n";
 
 		ConfirmFrame();
+		DEBUG_LOG("[Network] Frame confirmation sent!\n");
 
 		size_t dataSize = 0;
 		{
@@ -140,6 +171,7 @@ void FrameWrangler::Receiver()
 				printf("[DebugLog][Networking] Failed to read video packet details!\nError: %s\n", m_socket.last_error_str().c_str());
 			}
 
+			DEBUG_LOG("[Network] Recved the size of a FrameBuffer!\n");
 		}
 		
 		uint8_t* buf = (uint8_t*)malloc(dataSize);
@@ -152,10 +184,14 @@ void FrameWrangler::Receiver()
 			{
 				printf("[DebugLog][Networking] Failed to read video packet data!\nError: %s\n", m_socket.last_error_str().c_str());
 			}
+
+			DEBUG_LOG("[Network] Recved the data of a FrameBuffer!\n");
 		}
 
 		FrameBuffer* frameBuf = (FrameBuffer*)buf;
 		buf += sizeof(FrameBuffer);
+
+		DEBUG_LOG("[Network] Assigned the body of the FrameBuffer sturct!\n");
 
 		//set the data pointers in the VideoPkt*s to their locations in buf
 		for (int i = 0; i < FRAME_BATCH_SIZE; i++)
@@ -163,12 +199,15 @@ void FrameWrangler::Receiver()
 			frameBuf->encodedVideoPtrs[i] = buf;
 			buf += frameBuf->encodedVideoSizes[i];
 		}
+		DEBUG_LOG("[Network] Assigned the video pointers for the FrameBufffer struct!\n");
 
 		for (int i = 0; i < FRAME_BATCH_SIZE_AUDIO; i++)
 		{
 			frameBuf->ndiAudioFrames[i].p_data = (float*)buf;
 			buf += sizeof(float) * frameBuf->ndiAudioFrames[i].no_samples * frameBuf->ndiAudioFrames[i].no_channels;
 		}
+		DEBUG_LOG("[Network] Assigned the audio pointers for the FrameBufffer struct!\n");
+
 
 		{
 			OPTICK_EVENT("FrameInsertion");
@@ -178,6 +217,8 @@ void FrameWrangler::Receiver()
 			m_swapMutex.unlock();
 			m_batchCount++;
 		}
+
+		DEBUG_LOG("[Network] Inserted the FrameBufffer into the queue! Atomic batch count++\n");
 	}
 }
 
