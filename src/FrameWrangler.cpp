@@ -63,7 +63,8 @@ void FrameWrangler::Main()
 
 			m_swapMutex.unlock();
 
-			m_cvAudio.notify_one();
+			m_audioDone = false;
+
 			DEBUG_LOG("[Main] Released lock and started audio thread!\n");
 
 			for (int i = 0; i < FRAME_BATCH_SIZE; i++)
@@ -87,7 +88,6 @@ void FrameWrangler::Main()
 			DEBUG_LOG("[Main] Frames sent to NDI, waiting for audio!\n");
 
 			while (m_audioDone == false);
-			m_audioDone = false;
 
 			m_batchCount--;
 
@@ -113,12 +113,16 @@ void FrameWrangler::HandleAudio()
 	while (!m_exit)
 	{
 		DEBUG_LOG("[NdiAudioThread] Starting new iteration, waiting on condition_variable!\n");
+		
+		/*
 		std::unique_lock<std::mutex> lk(m_cvAudioMutex);
 		m_cvAudio.wait(lk);
-
-		DEBUG_LOG("[NdiAudioThread] Condition_variable triggered!\n");
+		*/
+		while (m_audioDone == true);
 
 		OPTICK_EVENT("HandleAudio");
+
+		DEBUG_LOG("[NdiAudioThread] Condition_variable triggered!\n");
 
 		for (int i = 0; i < FRAME_BATCH_SIZE_AUDIO; i++)
 		{

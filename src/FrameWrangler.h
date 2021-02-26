@@ -55,7 +55,7 @@ private:
 	std::condition_variable m_cvAudio;
 	
 	std::atomic<bool> m_exit = false;
-	std::atomic<bool> m_audioDone = false;
+	std::atomic<bool> m_audioDone = true;
 	std::atomic<unsigned int> m_batchCount = 0;
 
 	FrameBuffer* m_workingBuffer;

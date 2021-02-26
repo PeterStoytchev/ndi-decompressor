@@ -1,7 +1,7 @@
 #pragma once
 
-#define __PROFILE
-#define __DEBUGLOG
+//#define __PROFILE
+//#define __DEBUGLOG
 
 #ifdef __PROFILE
 #include "optik/optick.h"
