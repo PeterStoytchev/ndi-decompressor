@@ -1,4 +1,4 @@
-useHardwareAccel: false
+useHardwareAccel: true
 hwDeviceName: dxva2
 srcName: banananana
 codecName: h264

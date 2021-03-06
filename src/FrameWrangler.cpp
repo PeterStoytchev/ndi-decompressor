@@ -153,7 +153,7 @@ void FrameWrangler::Receiver()
 		if (m_batchCount > 2) 
 		{ 
 			DEBUG_LOG("[Network] More than the allowed number of batches in the buffer, waiting for clear!\n");
-			while (m_batchCount != 1); //Heisenbug? 
+			while (m_batchCount != 2);
 			DEBUG_LOG("[Network] Done waiting!\n");
 		}
 
