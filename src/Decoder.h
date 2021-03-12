@@ -46,8 +46,7 @@ struct DecoderSettings
 		hwDeviceType = settings.hwDeviceType;
 		codecName = settings.codecName;
 		srcName = settings.srcName;
-		videoPort = settings.videoPort;
-		audioPort = settings.audioPort;
+		dataPort = settings.dataPort;
 		xres = settings.xres;
 		yres = settings.yres;
 		fps = settings.fps;
@@ -68,8 +67,7 @@ struct DecoderSettings
 
 
 		threads = config["threads"].as<int>();
-		videoPort = config["videoPort"].as<int>();
-		audioPort = config["audioPort"].as<int>();
+		dataPort = config["dataPort"].as<int>();
 
 
 		xres = config["xres"].as<int>();
@@ -83,7 +81,7 @@ struct DecoderSettings
 	}
 
 	bool useHardwareAceel;
-	int videoPort, audioPort, xres, yres, fps, threads;
+	int dataPort, xres, yres, fps, threads;
 
 	std::string hwDeviceType;
 	std::string codecName;
