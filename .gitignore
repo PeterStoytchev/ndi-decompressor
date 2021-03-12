@@ -6,7 +6,9 @@
 *.sln
 *.vcxproj
 *.vcxproj.filters
+*.vcxproj.user
 
+bin-int/
 bin-init/
 bin/
 
