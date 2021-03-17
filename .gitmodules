@@ -1,3 +1,6 @@
 [submodule "vendor/sockpp"]
 	path = vendor/sockpp
 	url = https://github.com/PeterStoytchev/sockpp
+[submodule "vendor/yaml-cpp"]
+	path = vendor/yaml-cpp
+	url = https://github.com/PeterStoytchev/yaml-cpp.git
