@@ -4,7 +4,6 @@
 #include <csignal>
 
 #include "sockpp/tcp_acceptor.h"
-#include "sockpp/version.h"
 
 #include "Decoder.h"
 #include "FrameWrangler.h"

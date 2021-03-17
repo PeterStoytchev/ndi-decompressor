@@ -7,14 +7,6 @@
 
 #include "yaml-cpp/yaml.h"
 
-#ifdef _DEBUG
-#pragma comment(lib, "libyaml-debug")
-#endif // _DEBUG
-
-#ifndef _DEBUG
-#pragma comment(lib, "libyaml-release")
-#endif
-
 extern "C"
 {
 	#include <math.h>
@@ -27,10 +19,6 @@ extern "C"
 	#include <libavutil/imgutils.h>
 	#include <libavutil/mathematics.h>
 	#include <libavutil/samplefmt.h>
-
-	#pragma comment(lib, "avcodec")
-	#pragma comment(lib, "avutil")
-	#pragma comment(lib, "swscale")
 }
 
 #define LOG_ERR(ret) av_strerror(ret, errorBuf, 500); printf("%s\n", errorBuf); memset(errorBuf, 0, 500);
