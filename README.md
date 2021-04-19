@@ -1,7 +1,7 @@
 # ndi-decompressor
-The server (and for now decompressor) for my ndi-compressor project. This is what you would connect to.
+The server for my ndi-compressor project. This is what you would connect to.
 
-For now, run this on the device you would like to receive the NDI stream on. Once it starts receiving a signal, from a ndi-compressor, it will create a NDI source from it, with the name specified in the config. 
+Run this on the device you would like to receive the NDI stream on. Once it starts receiving a signal, from a ndi-compressor, it will create a NDI source from it, with the name specified in the config. 
 
 Keep in mind that this is a hobby project created by a novice. Do not expect miracles. That said, I will try and make it as good as possible.
 
@@ -22,8 +22,4 @@ UPDATE 1: Multi-threading the various stages ended up being not a good idea, imp
 UPDATE 2: Apperantly, I didn't know what I was doing when I last tried to multi-thread the compressor. So, yea. Multi-threading is back, but in a diffirent form. The biggest change, compared to before, is frame batching, which is currently baked in to 30 video and 24 audio frames per batch.
 
 # TODO
-1. Build the dependencies with the build system, instead of including precompiled binaries (aside from NDI lib, which isn't open source)
-3. Some sort of compression for audio. Currently thinking ZLib or LZ4, but could also be fed into ffmpeg.
-
-# Long-term TODO
-Decouple the server and decompressor. The idea is to have a server hosted in the cloud (wow really?) and have it act as an amplifier of sorts for the signal it receves from an encoder. This will happen once the networking and compression/decompression work smoothly.
+1. Some sort of compression for audio. Currently thinking ZLib or LZ4, but could also be fed into ffmpeg.
