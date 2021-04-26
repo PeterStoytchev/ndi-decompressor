@@ -12,7 +12,7 @@ I will keep the master branch stable, and will push anything new to dev (as is c
 2. Clone the repo.
 3. Run "premake5 vs2019" to generate VS2019 project files. If you want to build with something else, refer to the premake docs for that. (developed on VS2019, it will probably work on older versions, as long as C++17 is supported)
 4. Build it. (Note: If you want to build for anything else, aside from Windows x86_64, you will need to recompile the libraries and replace them in the vendor folder)
-5. Copy the config.yaml file next to the newly build .exe and change it as needed.
+5. Copy the config.yaml file next to the newly built .exe and change it as needed.
 6. From the redist directory, copy all the files next to the new .exe
 7. Run the server.
 
