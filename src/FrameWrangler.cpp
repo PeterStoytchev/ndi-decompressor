@@ -150,10 +150,10 @@ void FrameWrangler::Receiver()
 		DEBUG_LOG("[Network] Started new iteration!\n");
 
 		auto t1 = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
-		if (m_batchCount > 2) 
+		if (m_batchCount > 1) 
 		{ 
 			DEBUG_LOG("[Network] More than the allowed number of batches in the buffer, waiting for clear!\n");
-			while (m_batchCount != 2);
+			while (m_batchCount != 1);
 			DEBUG_LOG("[Network] Done waiting!\n");
 		}
 

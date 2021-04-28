@@ -2,8 +2,8 @@
 
 //#include <libavformat/avformat.h>
 
-#define FRAME_BATCH_SIZE 30 //turn this into a config file variable
-#define FRAME_BATCH_SIZE_AUDIO 24 //turn this into a config file variable
+#define FRAME_BATCH_SIZE 5 //turn this into a config file variable
+#define FRAME_BATCH_SIZE_AUDIO 4 //turn this into a config file variable
 
 struct FrameBuffer
 {
